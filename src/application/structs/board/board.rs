@@ -16,10 +16,15 @@ use crate::application::{
     structs::Position,
 };
 
+use super::{Interaction, Message};
+
 /// Игровая шашечная доска
 pub struct Board {
     white_pieces: HashMap<Position, Piece>,
     black_pieces: HashMap<Position, Piece>,
+
+    /// Хранит сгенерированные примитивы для отрисовки игровой доски
+    board_cache: Cache,
 }
 
 impl Default for Board {
@@ -34,6 +39,7 @@ impl Default for Board {
                 .iter()
                 .map(|position| (*position, Piece::default()))
                 .collect(),
+            board_cache: Cache::new()
         }
     }
 }
@@ -47,6 +53,15 @@ impl Board {
     const ROWS_BELONING_TO_BLACK: RangeInclusive<u8> = 0_u8..=2_u8;
     /// Строки, на которых изначально расположены белые шашки
     const ROWS_BELONING_TO_WHITE: RangeInclusive<u8> = 5_u8..=7_8;
+    /// Размер ячейки доски
+    const CELL_WIDTH: f32 = 80.0;
+
+    pub fn view(&self) -> Element<Message> {
+        Canvas::new(self)
+            .width(Length::Fill)
+            .height(Length::Fill)
+            .into()
+    }
 
     fn get_piece_default_positions() -> HashMap<Side, Vec<Position>> {
         use itertools::Itertools;
@@ -70,5 +85,56 @@ impl Board {
             .into_iter()
             .map(|(key, positions_nested)| (Side::from(key), positions_nested[0].clone()))
             .collect()
+    }
+}
+
+impl Program<Message> for Board {
+    type State = Interaction;
+
+    fn draw(
+        &self,
+        state: &Self::State,
+        renderer: &Renderer,
+        theme: &Theme,
+        bounds: Rectangle<f32>,
+        cursor: Cursor,
+    ) -> Vec<Geometry> {
+        use itertools::Itertools;
+        let board = self.board_cache.draw(renderer, bounds.size(), |frame| {
+            frame.with_save(|frame| {
+                frame.scale(Self::CELL_WIDTH);
+                for (row, column) in
+                    (0..Self::DEFAULT_SIZE.0).cartesian_product(0..Self::DEFAULT_SIZE.1)
+                {
+                    let color = if (row + column) % 2 == 0 {
+                        Color::WHITE
+                    } else {
+                        Color::BLACK
+                    };
+                    frame.fill_rectangle(Point::new(row as f32, column as f32), Size::UNIT, color);
+                }
+            });
+        });
+
+        vec![board]
+    }
+
+    fn update(
+        &self,
+        interaction: &mut Interaction,
+        event: Event,
+        bounds: Rectangle,
+        cursor: Cursor,
+    ) -> (event::Status, Option<Message>) {
+        (event::Status::Ignored, None)
+    }
+
+    fn mouse_interaction(
+        &self,
+        state: &Self::State,
+        bounds: Rectangle,
+        cursor: mouse::Cursor,
+    ) -> mouse::Interaction {
+        mouse::Interaction::Crosshair
     }
 }
