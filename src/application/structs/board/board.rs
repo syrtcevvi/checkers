@@ -53,6 +53,13 @@ impl Board {
     const ROWS_BELONING_TO_BLACK: RangeInclusive<u8> = 0_u8..=2_u8;
     /// Строки, на которых изначально расположены белые шашки
     const ROWS_BELONING_TO_WHITE: RangeInclusive<u8> = 5_u8..=7_8;
+
+    const GRAY_CELL_COLOR: Color = Color::from_rgb(0.75, 0.75, 0.75);
+    const RED_CELL_COLOR: Color = Color::from_rgb(0.644, 0.164, 0.164);
+
+    const BLACK_PIECE_COLOR: Color = Color::BLACK;
+    const WHITE_PIECE_COLOR: Color = Color::WHITE;
+
     /// Размер ячейки доски
     const CELL_WIDTH: f32 = 80.0;
 
@@ -107,9 +114,9 @@ impl Program<Message> for Board {
                     (0..Self::DEFAULT_SIZE.0).cartesian_product(0..Self::DEFAULT_SIZE.1)
                 {
                     let color = if (row + column) % 2 == 0 {
-                        Color::WHITE
+                        Self::GRAY_CELL_COLOR
                     } else {
-                        Color::BLACK
+                        Self::RED_CELL_COLOR
                     };
                     frame.fill_rectangle(Point::new(row as f32, column as f32), Size::UNIT, color);
                 }
@@ -135,6 +142,6 @@ impl Program<Message> for Board {
         bounds: Rectangle,
         cursor: mouse::Cursor,
     ) -> mouse::Interaction {
-        mouse::Interaction::Crosshair
+        mouse::Interaction::Pointer
     }
 }
