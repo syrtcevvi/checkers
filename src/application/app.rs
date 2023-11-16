@@ -41,6 +41,7 @@ impl Application for Checkers {
         column![
             self.board.view().map(move |message| Message::None),
             button("Нажми меня!"),
-        ].into()
+        ]
+        .into()
     }
 }

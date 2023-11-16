@@ -25,6 +25,8 @@ pub struct Board {
 
     /// Хранит сгенерированные примитивы для отрисовки игровой доски
     board_cache: Cache,
+    /// Хранит сгенерированные примитивы для отрисовки фигур игровой доски
+    pieces_cache: Cache,
 }
 
 impl Default for Board {
@@ -39,7 +41,8 @@ impl Default for Board {
                 .iter()
                 .map(|position| (*position, Piece::default()))
                 .collect(),
-            board_cache: Cache::new()
+            board_cache: Cache::new(),
+            pieces_cache: Cache::new(),
         }
     }
 }
@@ -62,6 +65,8 @@ impl Board {
 
     /// Размер ячейки доски
     const CELL_WIDTH: f32 = 80.0;
+    /// Радиус фигуры
+    const PIECE_RADIUS: f32 = 0.4;
 
     pub fn view(&self) -> Element<Message> {
         Canvas::new(self)
@@ -93,6 +98,14 @@ impl Board {
             .map(|(key, positions_nested)| (Side::from(key), positions_nested[0].clone()))
             .collect()
     }
+
+    fn draw_piece(frame: &mut Frame, position: &Position, piece: &Piece, color: &Color) {
+        let center = Point {
+            x: position.column as f32 + 0.5,
+            y: position.row as f32 + 0.5,
+        };
+        frame.fill(&Path::circle(center, Self::PIECE_RADIUS), *color);
+    }
 }
 
 impl Program<Message> for Board {
@@ -123,7 +136,21 @@ impl Program<Message> for Board {
             });
         });
 
-        vec![board]
+        let pieces = self.pieces_cache.draw(renderer, bounds.size(), |frame| {
+            frame.with_save(|frame| {
+                frame.scale(Self::CELL_WIDTH);
+
+                for (position, piece) in &self.black_pieces {
+                    Self::draw_piece(frame, position, piece, &Self::BLACK_PIECE_COLOR);
+                }
+
+                for (position, piece) in &self.white_pieces {
+                    Self::draw_piece(frame, position, piece, &Self::WHITE_PIECE_COLOR);
+                }
+            });
+        });
+
+        vec![board, pieces]
     }
 
     fn update(
