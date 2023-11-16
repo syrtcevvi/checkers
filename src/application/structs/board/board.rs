@@ -59,6 +59,7 @@ impl Board {
 
     const GRAY_CELL_COLOR: Color = Color::from_rgb(0.75, 0.75, 0.75);
     const RED_CELL_COLOR: Color = Color::from_rgb(0.644, 0.164, 0.164);
+    const HOVERED_CELL_COLOR: Color = Color::from_rgba(0.574, 0.437, 0.855, 0.42);
 
     const BLACK_PIECE_COLOR: Color = Color::BLACK;
     const WHITE_PIECE_COLOR: Color = Color::WHITE;
@@ -106,6 +107,13 @@ impl Board {
         };
         frame.fill(&Path::circle(center, Self::PIECE_RADIUS), *color);
     }
+
+    fn get_position(point: Point, bounds: Rectangle) -> Position {
+        Position {
+            row: (point.y / Self::CELL_WIDTH) as u8,
+            column: (point.x / Self::CELL_WIDTH) as u8,
+        }
+    }
 }
 
 impl Program<Message> for Board {
@@ -150,7 +158,43 @@ impl Program<Message> for Board {
             });
         });
 
-        vec![board, pieces]
+        let overlay = {
+            let mut frame = Frame::new(renderer, bounds.size());
+            if let Some(Position { row, column }) = cursor
+                .position_in(bounds)
+                .map(|point| Self::get_position(point, bounds))
+            {
+                if (0..Self::DEFAULT_SIZE.0).contains(&row)
+                    && (0..Self::DEFAULT_SIZE.1).contains(&column)
+                {
+                    frame.with_save(|frame| {
+                        frame.scale(Self::CELL_WIDTH);
+                        frame.fill_rectangle(
+                            Point::new(column as f32, row as f32),
+                            Size::UNIT,
+                            Self::HOVERED_CELL_COLOR,
+                        );
+                    });
+
+                    // Преднастроенный текстовый элемент TODO to statics
+                    let overlay_text_preset: Text = Text {
+                        color: Color::BLACK,
+                        size: 14.0,
+                        horizontal_alignment: alignment::Horizontal::Right,
+                        vertical_alignment: alignment::Vertical::Bottom,
+                        ..Text::default()
+                    };
+                    frame.fill_text(Text {
+                        content: format!("({}, {})", row, column),
+                        position: Point::new(frame.width(), frame.height() - 5.0),
+                        ..overlay_text_preset
+                    });
+                }
+            }
+            frame.into_geometry()
+        };
+
+        vec![board, pieces, overlay]
     }
 
     fn update(
