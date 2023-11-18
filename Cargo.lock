@@ -279,6 +279,7 @@ dependencies = [
  "iced_aw",
  "itertools",
  "log",
+ "once_cell",
  "serde",
 ]
 
