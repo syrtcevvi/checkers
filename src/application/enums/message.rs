@@ -1,4 +1,6 @@
+use crate::application::structs::BoardMessage;
+
 #[derive(Debug, Clone)]
 pub enum Message {
-    None,
+    Board(BoardMessage),
 }

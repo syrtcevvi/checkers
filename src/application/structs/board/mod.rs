@@ -1,5 +1,5 @@
 mod board;
-mod interaction;
 mod message;
+mod state;
 
-pub use self::{board::Board, interaction::Interaction, message::Message};
+pub use self::{board::Board, message::Message, state::State};

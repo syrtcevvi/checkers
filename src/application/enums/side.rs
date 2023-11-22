@@ -1,6 +1,11 @@
-#[derive(Debug, Hash, PartialEq, Eq)]
+use derive_more::Display;
+
+#[derive(Debug, Display, Default, Hash, PartialEq, Eq, Clone, Copy)]
 pub enum Side {
+    #[display(fmt = "Чёрные")]
     Black,
+    #[default]
+    #[display(fmt = "Белые")]
     White,
 }
 

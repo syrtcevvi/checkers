@@ -1,5 +1,8 @@
+use derive_more::Display;
+
 /// Положение фигуры на игральной доске
-#[derive(Debug, Hash, PartialEq, Eq, Clone, Copy)]
+#[derive(Debug, Display, Hash, PartialEq, Eq, Clone, Copy)]
+#[display(fmt = "({}, {})", row, column)]
 pub struct Position {
     pub row: u8,
     pub column: u8,

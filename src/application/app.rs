@@ -11,7 +11,10 @@ use iced::{
     Alignment, Application, Color, Command, Element, Length, Renderer, Subscription, Theme,
 };
 
-use crate::application::{enums::Message, structs::Board};
+use crate::application::{
+    enums::{Message, Side},
+    structs::Board,
+};
 
 #[derive(Default)]
 pub struct Checkers {
@@ -34,12 +37,22 @@ impl Application for Checkers {
     }
 
     fn update(&mut self, message: Self::Message) -> Command<Self::Message> {
+        use crate::application::structs::BoardMessage;
+        match message {
+            Message::Board(board_message) => match board_message {
+                BoardMessage::MovePiece { from, to, side } => {
+                    self.board.move_piece(side, from, to);
+                }
+            },
+        }
         Command::none()
     }
 
     fn view(&self) -> Element<'_, Self::Message, Renderer<Self::Theme>> {
         column![
-            self.board.view().map(move |message| Message::None),
+            self.board
+                .view()
+                .map(move |message| Message::Board(message)),
             button("Нажми меня!"),
         ]
         .into()

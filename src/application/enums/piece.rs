@@ -1,8 +1,12 @@
+use derive_more::Display;
+
 /// Тип фигуры на шашечной доске
-#[derive(Default)]
+#[derive(Debug, Display, Default, Clone, Copy)]
 pub enum Piece {
     #[default]
+    #[display(fmt = "Шашка")]
     Man,
+    #[display(fmt = "Дамка")]
     King,
 }
 

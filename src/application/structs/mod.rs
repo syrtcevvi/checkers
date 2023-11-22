@@ -1,4 +1,7 @@
-mod board;
+pub mod board;
 mod position;
 
-pub use self::{board::Board, position::Position};
+pub use self::{
+    board::{Board, Message as BoardMessage},
+    position::Position,
+};
