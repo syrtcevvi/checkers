@@ -42,6 +42,7 @@ impl Application for Checkers {
             Message::Board(board_message) => match board_message {
                 BoardMessage::MovePiece { from, to, side } => {
                     self.board.move_piece(side, from, to);
+                    self.board.pass_the_move();
                 }
             },
         }

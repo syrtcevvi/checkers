@@ -9,6 +9,15 @@ pub enum Side {
     White,
 }
 
+impl Side {
+    pub fn opposite(&self) -> Side {
+        match self {
+            Side::White => Side::Black,
+            Side::Black => Side::White,
+        }
+    }
+}
+
 impl From<bool> for Side {
     fn from(value: bool) -> Self {
         if value {

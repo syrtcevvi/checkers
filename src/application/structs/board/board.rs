@@ -33,7 +33,7 @@ pub struct Board {
     white_pieces: HashMap<Position, Piece>,
     black_pieces: HashMap<Position, Piece>,
     /// Текущий ход стороны
-    current_turn: Side,
+    current_move: Side,
 
     /// Хранит сгенерированные примитивы для отрисовки игровой доски
     board_cache: Cache,
@@ -53,7 +53,7 @@ impl Default for Board {
                 .iter()
                 .map(|position| (*position, Piece::default()))
                 .collect(),
-            current_turn: Side::default(),
+            current_move: Side::default(),
             board_cache: Cache::new(),
             pieces_cache: Cache::new(),
         }
@@ -112,6 +112,11 @@ impl Board {
         pieces.insert(to, piece);
         // Принудительно перерисовываем фишки на доске
         self.pieces_cache.clear();
+    }
+
+    /// Передать ход противоположной стороне
+    pub fn pass_the_move(&mut self) {
+        self.current_move = self.current_move.opposite();
     }
 
     #[inline(always)]
@@ -212,10 +217,10 @@ impl Board {
     // fn get_available_cell_positions_for_moving(&self, piece_position: Position, piece: &Piece) ->
 
     fn get_piece_at_position(&self, position: &Position) -> Option<Piece> {
-        match self.current_turn {
-            Side::White => self.white_pieces.get(position).cloned(),
-            Side::Black => self.black_pieces.get(position).cloned(),
-        }
+        match self.current_move {
+            Side::White => &self.white_pieces,
+            Side::Black => &self.black_pieces,
+        }.get(position).cloned()
     }
 }
 
@@ -287,7 +292,7 @@ impl Program<Message> for Board {
                 }
             }
             frame.fill_text(Text {
-                content: format!("Сейчас ходят: {}", self.current_turn),
+                content: format!("Сейчас ходят: {}", self.current_move),
                 position: Self::get_text_line_point(1),
                 ..OVERLAY_TEXT_PRESET.clone()
             });
@@ -348,7 +353,7 @@ impl Program<Message> for Board {
                             Some(Message::MovePiece {
                                 from: initial_position,
                                 to: result_position,
-                                side: self.current_turn,
+                                side: self.current_move,
                             }),
                         );
                     }
