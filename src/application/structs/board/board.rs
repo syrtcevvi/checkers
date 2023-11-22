@@ -1,4 +1,4 @@
-use std::{collections::HashMap, ops::RangeInclusive};
+use std::{collections::HashMap, ops::RangeInclusive, result};
 
 use iced::{
     alignment, event,
@@ -9,7 +9,7 @@ use iced::{
 use once_cell::sync::Lazy;
 
 use crate::application::{
-    enums::{Piece, Side},
+    enums::{Piece, Route, Side},
     structs::Position,
 };
 
@@ -60,11 +60,11 @@ impl Board {
     /// Количество фигур у игрока по умолчанию
     const DEFAULT_PLAYERS_PIECES_QUANTITY: u8 = 12;
     /// Стандартный размер доски в клетках: (кол-во строк, кол-во столбцов)
-    const DEFAULT_SIZE: (u8, u8) = (8, 8);
+    const DEFAULT_SIZE: (i8, i8) = (8, 8);
     /// Строки, на которых изначально расположены черные шашки
-    const ROWS_BELONING_TO_BLACK: RangeInclusive<u8> = 0_u8..=2_u8;
+    const ROWS_BELONING_TO_BLACK: RangeInclusive<i8> = 0..=2;
     /// Строки, на которых изначально расположены белые шашки
-    const ROWS_BELONING_TO_WHITE: RangeInclusive<u8> = 5_u8..=7_8;
+    const ROWS_BELONING_TO_WHITE: RangeInclusive<i8> = 5..=7;
 
     /// Цвет "белых" ячеек доски
     const GRAY_CELL_COLOR: Color = Color::from_rgb(0.75, 0.75, 0.75);
@@ -73,8 +73,8 @@ impl Board {
     /// Цвет ячейки, над которой находится курсор пользователя
     const HOVERED_CELL_COLOR: Color = Color::from_rgba(0.574, 0.437, 0.855, 0.42);
 
-    const AVAILABLE_CELL_FOR_MOVING_COLOR: Color = Color::from_rgba(0.0, 1.0, 0.0, 0.42);
-    const AVAILABLE_CELL_FOR_TAKING_COLOR: Color = Color::from_rgba(1.0, 0.0, 0.0, 0.42);
+    const AVAILABLE_CELL_FOR_MOVING_COLOR: Color = Color::from_rgba(0.0, 1.0, 0.0, 0.22);
+    const AVAILABLE_CELL_FOR_TAKING_COLOR: Color = Color::from_rgba(1.0, 0.0, 0.0, 0.22);
 
     const BLACK_PIECE_COLOR: Color = Color::BLACK;
     const BLACK_PIECE_MOVING_COLOR: Color = Color::from_rgba(0.0, 0.0, 0.0, 0.42);
@@ -118,7 +118,7 @@ impl Board {
     }
 
     #[inline(always)]
-    fn get_board_size(cells: (u8, u8), cell_width: f32) -> (f32, f32) {
+    fn get_board_size(cells: (i8, i8), cell_width: f32) -> (f32, f32) {
         (cells.0 as f32 * cell_width, cells.1 as f32 * cell_width)
     }
 
@@ -179,8 +179,8 @@ impl Board {
     /// Возвращает позицию ячейки игральной доски, которая содержит в себе данную точку
     fn get_cell_position(point: Point, bounds: Rectangle) -> Position {
         Position {
-            row: (point.y / Self::CELL_WIDTH) as u8,
-            column: (point.x / Self::CELL_WIDTH) as u8,
+            row: (point.y / Self::CELL_WIDTH) as i8,
+            column: (point.x / Self::CELL_WIDTH) as i8,
         }
     }
 
@@ -212,15 +212,76 @@ impl Board {
         )
     }
 
-    // fn get_available_cell_positions_for_moving(&self, piece_position: Position, piece: &Piece) ->
+    fn get_available_routes(&self, position: Position, piece: Piece, side: Side) -> Vec<Route> {
+        let movement_routes: Vec<Route> = self.get_movement_routes(position, piece, side);
 
-    fn get_piece_at_position(&self, position: &Position) -> Option<Piece> {
+        movement_routes
+    }
+
+    fn get_piece_at_position(&self, position: Position) -> Option<Piece> {
         match self.current_move {
             Side::White => &self.white_pieces,
             Side::Black => &self.black_pieces,
         }
-        .get(position)
+        .get(&position)
         .cloned()
+    }
+
+    /// Возвращает позиции, в которые можно перейти, находясь в текущей ячейке за определённую сторону
+    pub fn get_movement_routes(&self, position: Position, piece: Piece, side: Side) -> Vec<Route> {
+        match side {
+            Side::White => match piece {
+                Piece::Man => {
+                    vec![
+                        (position.row - 1, position.column - 1).into(),
+                        (position.row - 1, position.column + 1).into(),
+                    ]
+                }
+                Piece::King => {
+                    todo!()
+                }
+            },
+            Side::Black => match piece {
+                Piece::Man => {
+                    vec![
+                        (position.row + 1, position.column - 1).into(),
+                        (position.row + 1, position.column + 1).into(),
+                    ]
+                }
+                Piece::King => {
+                    todo!()
+                }
+            },
+        }
+        .into_iter()
+        // Отсекаем ячейки, в которых находятся фигуры
+        .filter(|position| self.is_cell_empty(*position))
+        // Отсекаем ячейки за пределами доски
+        .filter(|position| self.is_inside_board(*position))
+        .map(Route::Movement)
+        .collect()
+    }
+
+    fn is_cell_empty(&self, position: Position) -> bool {
+        !self.white_pieces.contains_key(&position) && !self.black_pieces.contains_key(&position)
+    }
+
+    fn is_inside_board(&self, position: Position) -> bool {
+        (0..Self::DEFAULT_SIZE.0).contains(&position.row)
+            && (0..Self::DEFAULT_SIZE.1).contains(&position.column)
+    }
+
+    /// Проверяет, содержится ли ячейка доски в корректных путях
+    fn routes_contains_position(&self, routes: &Vec<Route>, position: Position) -> bool {
+        for route in routes {
+            if match route {
+                Route::Movement(pos) => position == *pos,
+                Route::Taking(positions) => positions.contains(&position),
+            } {
+                return true;
+            }
+        }
+        false
     }
 }
 
@@ -303,13 +364,36 @@ impl Program<Message> for Board {
                                     Size::UNIT,
                                     Self::HOVERED_CELL_COLOR,
                                 );
-                                Self::draw_piece(frame, position, *piece, &moving_piece_color);
+                                let available_routes = self.get_available_routes(
+                                    *initial_position,
+                                    *piece,
+                                    self.current_move,
+                                );
+
+                                if self.routes_contains_position(&available_routes, position) {
+                                    Self::draw_piece(frame, position, *piece, &moving_piece_color);
+                                }
+
+                                // Отрисовываем возможные ходы для даной фигуры
+                                for route in &available_routes {
+                                    match route {
+                                        Route::Movement(position) => {
+                                            frame.fill_rectangle(
+                                                Point::new(
+                                                    position.column as f32,
+                                                    position.row as f32,
+                                                ),
+                                                Size::UNIT,
+                                                Self::AVAILABLE_CELL_FOR_MOVING_COLOR,
+                                            );
+                                        }
+                                        Route::Taking(..) => todo!(),
+                                    }
+                                }
                             }
                             _ => {}
                         }
                     });
-
-                    // TODO отрисовываем возможные ходы для текущей фигуры
 
                     frame.fill_text(Text {
                         content: format!("Текущая ячейка: {}", position),
@@ -357,7 +441,7 @@ impl Program<Message> for Board {
                 match *state {
                     State::None => {
                         let initial_position = Self::get_cell_position(cursor_position, bounds);
-                        if let Some(piece) = self.get_piece_at_position(&initial_position) {
+                        if let Some(piece) = self.get_piece_at_position(initial_position) {
                             *state = State::MovingPiece {
                                 initial_position,
                                 piece,
@@ -374,15 +458,20 @@ impl Program<Message> for Board {
                         piece,
                     } => {
                         let result_position = Self::get_cell_position(cursor_position, bounds);
-                        *state = State::None;
-                        return (
-                            Status::Captured,
-                            Some(Message::MovePiece {
-                                from: initial_position,
-                                to: result_position,
-                                side: self.current_move,
-                            }),
-                        );
+                        let available_routes =
+                            self.get_available_routes(initial_position, piece, self.current_move);
+                        // Если пользователь совершает перемещение в корректную ячейку
+                        if self.routes_contains_position(&available_routes, result_position) {
+                            *state = State::None;
+                            return (
+                                Status::Captured,
+                                Some(Message::MovePiece {
+                                    from: initial_position,
+                                    to: result_position,
+                                    side: self.current_move,
+                                }),
+                            );
+                        }
                     }
                 }
             }

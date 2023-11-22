@@ -4,12 +4,12 @@ use derive_more::Display;
 #[derive(Debug, Display, Hash, PartialEq, Eq, Clone, Copy)]
 #[display(fmt = "({}, {})", row, column)]
 pub struct Position {
-    pub row: u8,
-    pub column: u8,
+    pub row: i8,
+    pub column: i8,
 }
 
-impl From<(u8, u8)> for Position {
-    fn from(value: (u8, u8)) -> Self {
+impl From<(i8, i8)> for Position {
+    fn from(value: (i8, i8)) -> Self {
         Self {
             row: value.0,
             column: value.1,
