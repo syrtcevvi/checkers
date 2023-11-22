@@ -50,12 +50,6 @@ impl Application for Checkers {
     }
 
     fn view(&self) -> Element<'_, Self::Message, Renderer<Self::Theme>> {
-        column![
-            self.board
-                .view()
-                .map(move |message| Message::Board(message)),
-            button("Нажми меня!"),
-        ]
-        .into()
+        column![self.board.view().map(Message::Board), button("Нажми меня!"),].into()
     }
 }

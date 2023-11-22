@@ -1,14 +1,10 @@
-use std::{
-    collections::HashMap,
-    ops::{Range, RangeInclusive},
-};
+use std::{collections::HashMap, ops::RangeInclusive};
 
 use iced::{
     alignment, event,
     mouse::{self, Button, Cursor},
-    touch,
     widget::canvas::{Cache, Canvas, Event, Frame, Geometry, Path, Program, Text},
-    Color, Element, Font, Length, Point, Rectangle, Renderer, Size, Theme, Vector,
+    Color, Element, Length, Point, Rectangle, Renderer, Size, Theme,
 };
 use once_cell::sync::Lazy;
 
@@ -81,7 +77,9 @@ impl Board {
     const AVAILABLE_CELL_FOR_TAKING_COLOR: Color = Color::from_rgba(1.0, 0.0, 0.0, 0.42);
 
     const BLACK_PIECE_COLOR: Color = Color::BLACK;
+    const BLACK_PIECE_MOVING_COLOR: Color = Color::from_rgba(0.0, 0.0, 0.0, 0.42);
     const WHITE_PIECE_COLOR: Color = Color::WHITE;
+    const WHITE_PIECE_MOVING_COLOR: Color = Color::from_rgba(1.0, 1.0, 1.0, 0.42);
     const KING_CROWN_COLOR: Color = Color::from_rgb(0.996, 0.839, 0.0);
 
     /// Размер ячейки доски
@@ -107,7 +105,7 @@ impl Board {
             Side::White => &mut self.white_pieces,
             Side::Black => &mut self.black_pieces,
         };
-        let piece = pieces.get(&from).unwrap().clone();
+        let piece = *pieces.get(&from).unwrap();
         pieces.remove(&from);
         pieces.insert(to, piece);
         // Принудительно перерисовываем фишки на доске
@@ -220,7 +218,9 @@ impl Board {
         match self.current_move {
             Side::White => &self.white_pieces,
             Side::Black => &self.black_pieces,
-        }.get(position).cloned()
+        }
+        .get(position)
+        .cloned()
     }
 }
 
@@ -268,24 +268,51 @@ impl Program<Message> for Board {
 
         let overlay = {
             let mut frame = Frame::new(renderer, bounds.size());
-            if let Some(Position { row, column }) = cursor
+            if let Some(position) = cursor
                 .position_in(bounds)
                 .map(|point| Self::get_cell_position(point, bounds))
             {
-                if (0..Self::DEFAULT_SIZE.0).contains(&row)
-                    && (0..Self::DEFAULT_SIZE.1).contains(&column)
+                // Если пользователь указывает на одну из ячеек игральной доски
+                if (0..Self::DEFAULT_SIZE.0).contains(&position.row)
+                    && (0..Self::DEFAULT_SIZE.1).contains(&position.column)
                 {
+                    // Подсвечиваем ячейку доски, над которой находится курсор пользователя
                     frame.with_save(|frame| {
                         frame.scale(Self::CELL_WIDTH);
                         frame.fill_rectangle(
-                            Point::new(column as f32, row as f32),
+                            Point::new(position.column as f32, position.row as f32),
                             Size::UNIT,
                             Self::HOVERED_CELL_COLOR,
                         );
+                        // Отрисовываем выбранную фигуру во время перемещения
+                        match state {
+                            State::MovingPiece {
+                                piece,
+                                initial_position,
+                            } => {
+                                let moving_piece_color = match self.current_move {
+                                    Side::White => Self::WHITE_PIECE_MOVING_COLOR,
+                                    Side::Black => Self::BLACK_PIECE_MOVING_COLOR,
+                                };
+                                // Показываем, что фигуры как будто бы уже нет на прежней позиции
+                                frame.fill_rectangle(
+                                    Point::new(
+                                        initial_position.column as f32,
+                                        initial_position.row as f32,
+                                    ),
+                                    Size::UNIT,
+                                    Self::HOVERED_CELL_COLOR,
+                                );
+                                Self::draw_piece(frame, position, *piece, &moving_piece_color);
+                            }
+                            _ => {}
+                        }
                     });
 
+                    // TODO отрисовываем возможные ходы для текущей фигуры
+
                     frame.fill_text(Text {
-                        content: format!("Текущая ячейка: ({}, {})", row, column),
+                        content: format!("Текущая ячейка: {}", position),
                         position: Self::get_text_line_point(0),
                         ..OVERLAY_TEXT_PRESET.clone()
                     });

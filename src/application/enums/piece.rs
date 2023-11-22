@@ -12,18 +12,10 @@ pub enum Piece {
 
 impl Piece {
     pub fn is_man(&self) -> bool {
-        if let Piece::Man = self {
-            true
-        } else {
-            false
-        }
+        matches!(self, Piece::Man)
     }
 
     pub fn is_king(&self) -> bool {
-        if let Piece::King = self {
-            true
-        } else {
-            false
-        }
+        matches!(self, Piece::King)
     }
 }
