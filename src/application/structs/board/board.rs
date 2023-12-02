@@ -1,4 +1,4 @@
-use std::{collections::HashMap, ops::RangeInclusive, result};
+use std::{cell::RefCell, rc::Rc};
 
 use iced::{
     alignment, event,
@@ -10,7 +10,7 @@ use once_cell::sync::Lazy;
 
 use crate::application::{
     enums::{Piece, Route, Side},
-    structs::Position,
+    structs::{GameData, Position},
 };
 
 use super::{Message, State};
@@ -24,48 +24,17 @@ static OVERLAY_TEXT_PRESET: Lazy<Text> = Lazy::new(|| Text {
     ..Text::default()
 });
 
-/// Игровая шашечная доска
+/// Игровая доска игры "Шашки"
 pub struct Board {
-    white_pieces: HashMap<Position, Piece>,
-    black_pieces: HashMap<Position, Piece>,
-    /// Текущий ход стороны
-    current_move: Side,
-
+    /// Данные о состоянии игрового поля
+    game_data: Rc<RefCell<GameData>>,
     /// Хранит сгенерированные примитивы для отрисовки игровой доски
     board_cache: Cache,
     /// Хранит сгенерированные примитивы для отрисовки фигур игровой доски
     pieces_cache: Cache,
 }
 
-impl Default for Board {
-    fn default() -> Self {
-        let piece_default_positions = Self::get_piece_default_positions();
-        Self {
-            white_pieces: piece_default_positions[&Side::White]
-                .iter()
-                .map(|position| (*position, Piece::default()))
-                .collect(),
-            black_pieces: piece_default_positions[&Side::Black]
-                .iter()
-                .map(|position| (*position, Piece::default()))
-                .collect(),
-            current_move: Side::default(),
-            board_cache: Cache::new(),
-            pieces_cache: Cache::new(),
-        }
-    }
-}
-
 impl Board {
-    /// Количество фигур у игрока по умолчанию
-    const DEFAULT_PLAYERS_PIECES_QUANTITY: u8 = 12;
-    /// Стандартный размер доски в клетках: (кол-во строк, кол-во столбцов)
-    const DEFAULT_SIZE: (i8, i8) = (8, 8);
-    /// Строки, на которых изначально расположены черные шашки
-    const ROWS_BELONING_TO_BLACK: RangeInclusive<i8> = 0..=2;
-    /// Строки, на которых изначально расположены белые шашки
-    const ROWS_BELONING_TO_WHITE: RangeInclusive<i8> = 5..=7;
-
     /// Цвет "белых" ячеек доски
     const GRAY_CELL_COLOR: Color = Color::from_rgb(0.75, 0.75, 0.75);
     /// Цвет "черных" ячеек доски
@@ -92,6 +61,14 @@ impl Board {
     const BOARD_MARGIN_RIGHT: f32 = 10.0;
     const SPACING_BETWEEN_TEXT: f32 = 20.0;
 
+    pub fn new(game_data: Rc<RefCell<GameData>>) -> Self {
+        Self {
+            game_data,
+            board_cache: Cache::new(),
+            pieces_cache: Cache::new(),
+        }
+    }
+
     pub fn view(&self) -> Element<Message> {
         Canvas::new(self)
             .width(Length::Fill)
@@ -99,26 +76,14 @@ impl Board {
             .into()
     }
 
-    /// Передвигает фигуру из позиции from, в позицию to
-    pub fn move_piece(&mut self, side: Side, from: Position, to: Position) {
-        let pieces = match side {
-            Side::White => &mut self.white_pieces,
-            Side::Black => &mut self.black_pieces,
-        };
-        let piece = *pieces.get(&from).unwrap();
-        pieces.remove(&from);
-        pieces.insert(to, piece);
-        // Принудительно перерисовываем фишки на доске
+    pub fn update(&self) {
+        self.board_cache.clear();
         self.pieces_cache.clear();
     }
 
-    /// Передать ход противоположной стороне
-    pub fn pass_the_move(&mut self) {
-        self.current_move = self.current_move.opposite();
-    }
-
-    #[inline(always)]
-    fn get_board_size(cells: (i8, i8), cell_width: f32) -> (f32, f32) {
+    fn get_board_size(&self) -> (f32, f32) {
+        let cells = self.game_data.borrow().board_cells();
+        let cell_width = Self::CELL_WIDTH;
         (cells.0 as f32 * cell_width, cells.1 as f32 * cell_width)
     }
 
@@ -126,36 +91,12 @@ impl Board {
     /// Возвращает позицию текстового элемента на данной строке
     ///
     /// Параметр row начинается с 0
-    fn get_text_line_point(row: usize) -> Point {
-        let board_size = Self::get_board_size(Self::DEFAULT_SIZE, Self::CELL_WIDTH);
+    fn get_text_line_point(&self, row: usize) -> Point {
+        let board_size = self.get_board_size();
         Point {
             x: board_size.1 + Self::BOARD_MARGIN_RIGHT,
             y: row as f32 * Self::SPACING_BETWEEN_TEXT,
         }
-    }
-
-    fn get_piece_default_positions() -> HashMap<Side, Vec<Position>> {
-        use itertools::Itertools;
-        (0..Self::DEFAULT_SIZE.0)
-            .cartesian_product(0..Self::DEFAULT_SIZE.1)
-            // Выбираем координаты черных ячеек доски
-            .filter(|(row, column)| {
-                row % 2 == 0 && column % 2 == 1 || row % 2 == 1 && column % 2 == 0
-            })
-            .map(|pair| Position::from(pair))
-            // Выбираем координаты черных ячеек на краях доски, где должны стоять шашки игроков
-            .filter(|pos| {
-                Self::ROWS_BELONING_TO_BLACK.contains(&pos.row)
-                    || Self::ROWS_BELONING_TO_WHITE.contains(&pos.row)
-            })
-            // Делим фигуры на фигуры черных и белых
-            .group_by(|pos| Self::ROWS_BELONING_TO_BLACK.contains(&pos.row))
-            .into_iter()
-            .map(|(key, positions)| (key, positions.collect::<Vec<Position>>()))
-            .into_group_map()
-            .into_iter()
-            .map(|(key, positions_nested)| (Side::from(key), positions_nested[0].clone()))
-            .collect()
     }
 
     /// Рисует фигуру на указанной позиции на игральной доске
@@ -186,22 +127,23 @@ impl Board {
 
     /// Возвращает строку, содержащую информацию о количестве фигур у каждой из сторон
     fn get_stats_str(&self) -> String {
-        let white_men_quantity = self
+        let game_data = self.game_data.borrow();
+        let white_men_quantity = game_data
             .white_pieces
             .values()
             .filter(|piece| piece.is_man())
             .count();
-        let white_kings_quantity = self
+        let white_kings_quantity = game_data
             .white_pieces
             .values()
             .filter(|piece| piece.is_king())
             .count();
-        let black_men_quantity = self
+        let black_men_quantity = game_data
             .black_pieces
             .values()
             .filter(|piece| piece.is_man())
             .count();
-        let black_kings_quantity = self
+        let black_kings_quantity = game_data
             .black_pieces
             .values()
             .filter(|piece| piece.is_king())
@@ -212,76 +154,14 @@ impl Board {
         )
     }
 
-    fn get_available_routes(&self, position: Position, piece: Piece, side: Side) -> Vec<Route> {
-        let movement_routes: Vec<Route> = self.get_movement_routes(position, piece, side);
-
-        movement_routes
-    }
-
     fn get_piece_at_position(&self, position: Position) -> Option<Piece> {
-        match self.current_move {
-            Side::White => &self.white_pieces,
-            Side::Black => &self.black_pieces,
+        let game_data = self.game_data.borrow();
+        match game_data.current_move {
+            Side::White => &game_data.white_pieces,
+            Side::Black => &game_data.black_pieces,
         }
         .get(&position)
         .cloned()
-    }
-
-    /// Возвращает позиции, в которые можно перейти, находясь в текущей ячейке за определённую сторону
-    pub fn get_movement_routes(&self, position: Position, piece: Piece, side: Side) -> Vec<Route> {
-        match side {
-            Side::White => match piece {
-                Piece::Man => {
-                    vec![
-                        (position.row - 1, position.column - 1).into(),
-                        (position.row - 1, position.column + 1).into(),
-                    ]
-                }
-                Piece::King => {
-                    todo!()
-                }
-            },
-            Side::Black => match piece {
-                Piece::Man => {
-                    vec![
-                        (position.row + 1, position.column - 1).into(),
-                        (position.row + 1, position.column + 1).into(),
-                    ]
-                }
-                Piece::King => {
-                    todo!()
-                }
-            },
-        }
-        .into_iter()
-        // Отсекаем ячейки, в которых находятся фигуры
-        .filter(|position| self.is_cell_empty(*position))
-        // Отсекаем ячейки за пределами доски
-        .filter(|position| self.is_inside_board(*position))
-        .map(Route::Movement)
-        .collect()
-    }
-
-    fn is_cell_empty(&self, position: Position) -> bool {
-        !self.white_pieces.contains_key(&position) && !self.black_pieces.contains_key(&position)
-    }
-
-    fn is_inside_board(&self, position: Position) -> bool {
-        (0..Self::DEFAULT_SIZE.0).contains(&position.row)
-            && (0..Self::DEFAULT_SIZE.1).contains(&position.column)
-    }
-
-    /// Проверяет, содержится ли ячейка доски в корректных путях
-    fn routes_contains_position(&self, routes: &Vec<Route>, position: Position) -> bool {
-        for route in routes {
-            if match route {
-                Route::Movement(pos) => position == *pos,
-                Route::Taking(positions) => positions.contains(&position),
-            } {
-                return true;
-            }
-        }
-        false
     }
 }
 
@@ -296,13 +176,11 @@ impl Program<Message> for Board {
         bounds: Rectangle<f32>,
         cursor: Cursor,
     ) -> Vec<Geometry> {
-        use itertools::Itertools;
+        let game_data = self.game_data.borrow();
         let board = self.board_cache.draw(renderer, bounds.size(), |frame| {
             frame.with_save(|frame| {
                 frame.scale(Self::CELL_WIDTH);
-                for (row, column) in
-                    (0..Self::DEFAULT_SIZE.0).cartesian_product(0..Self::DEFAULT_SIZE.1)
-                {
+                for (row, column) in game_data.board_cell_coordinates() {
                     let color = if (row + column) % 2 == 0 {
                         Self::GRAY_CELL_COLOR
                     } else {
@@ -317,11 +195,11 @@ impl Program<Message> for Board {
             frame.with_save(|frame| {
                 frame.scale(Self::CELL_WIDTH);
 
-                for (position, piece) in &self.black_pieces {
+                for (position, piece) in &game_data.black_pieces {
                     Self::draw_piece(frame, *position, *piece, &Self::BLACK_PIECE_COLOR);
                 }
 
-                for (position, piece) in &self.white_pieces {
+                for (position, piece) in &game_data.white_pieces {
                     Self::draw_piece(frame, *position, *piece, &Self::WHITE_PIECE_COLOR);
                 }
             });
@@ -334,9 +212,7 @@ impl Program<Message> for Board {
                 .map(|point| Self::get_cell_position(point, bounds))
             {
                 // Если пользователь указывает на одну из ячеек игральной доски
-                if (0..Self::DEFAULT_SIZE.0).contains(&position.row)
-                    && (0..Self::DEFAULT_SIZE.1).contains(&position.column)
-                {
+                if game_data.is_inside_board(position) {
                     // Подсвечиваем ячейку доски, над которой находится курсор пользователя
                     frame.with_save(|frame| {
                         frame.scale(Self::CELL_WIDTH);
@@ -351,7 +227,7 @@ impl Program<Message> for Board {
                                 piece,
                                 initial_position,
                             } => {
-                                let moving_piece_color = match self.current_move {
+                                let moving_piece_color = match game_data.current_move {
                                     Side::White => Self::WHITE_PIECE_MOVING_COLOR,
                                     Side::Black => Self::BLACK_PIECE_MOVING_COLOR,
                                 };
@@ -364,13 +240,10 @@ impl Program<Message> for Board {
                                     Size::UNIT,
                                     Self::HOVERED_CELL_COLOR,
                                 );
-                                let available_routes = self.get_available_routes(
-                                    *initial_position,
-                                    *piece,
-                                    self.current_move,
-                                );
+                                let available_routes =
+                                    game_data.get_available_routes(*initial_position, *piece);
 
-                                if self.routes_contains_position(&available_routes, position) {
+                                if game_data.routes_contains_position(&available_routes, position) {
                                     Self::draw_piece(frame, position, *piece, &moving_piece_color);
                                 }
 
@@ -397,19 +270,19 @@ impl Program<Message> for Board {
 
                     frame.fill_text(Text {
                         content: format!("Текущая ячейка: {}", position),
-                        position: Self::get_text_line_point(0),
+                        position: self.get_text_line_point(0),
                         ..OVERLAY_TEXT_PRESET.clone()
                     });
                 }
             }
             frame.fill_text(Text {
-                content: format!("Сейчас ходят: {}", self.current_move),
-                position: Self::get_text_line_point(1),
+                content: format!("Сейчас ходят: {}", game_data.current_move),
+                position: self.get_text_line_point(1),
                 ..OVERLAY_TEXT_PRESET.clone()
             });
             frame.fill_text(Text {
                 content: self.get_stats_str(),
-                position: Self::get_text_line_point(2),
+                position: self.get_text_line_point(2),
                 ..OVERLAY_TEXT_PRESET.clone()
             });
 
@@ -437,6 +310,7 @@ impl Program<Message> for Board {
         // TODO отладка!
         // Выбор фишки для перемещения или выбор позиции, в которую переместить фишку
         if let Some(cursor_position) = cursor.position() {
+            let game_data = self.game_data.borrow();
             if let Mouse(ButtonPressed(Button::Left)) = event {
                 match *state {
                     State::None => {
@@ -459,16 +333,16 @@ impl Program<Message> for Board {
                     } => {
                         let result_position = Self::get_cell_position(cursor_position, bounds);
                         let available_routes =
-                            self.get_available_routes(initial_position, piece, self.current_move);
+                            game_data.get_available_routes(initial_position, piece);
                         // Если пользователь совершает перемещение в корректную ячейку
-                        if self.routes_contains_position(&available_routes, result_position) {
+                        if game_data.routes_contains_position(&available_routes, result_position) {
                             *state = State::None;
                             return (
                                 Status::Captured,
                                 Some(Message::MovePiece {
                                     from: initial_position,
                                     to: result_position,
-                                    side: self.current_move,
+                                    side: game_data.current_move,
                                 }),
                             );
                         }

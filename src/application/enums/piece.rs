@@ -1,7 +1,8 @@
 use derive_more::Display;
+use serde::{Deserialize, Serialize};
 
 /// Тип фигуры на шашечной доске
-#[derive(Debug, Display, Default, Clone, Copy)]
+#[derive(Debug, Display, Serialize, Deserialize, Default, Clone, Copy)]
 pub enum Piece {
     #[default]
     #[display(fmt = "Шашка")]
