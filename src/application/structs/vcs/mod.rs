@@ -25,12 +25,12 @@ impl Vcs {
     const DEFAULT_COMMITS_CAPACITY: usize = 64;
 
     /// Создаёт новую ветку
-    pub fn create_branch(&mut self, name: &str) {
+    pub fn create_branch(&mut self, name: String) {
         let new_branch = Rc::new(RefCell::new(Branch {
             commit: self.current_commit.clone(),
-            name: name.to_string(),
+            name: name.clone(),
         }));
-        self.branches.insert(name.to_string(), new_branch.clone());
+        self.branches.insert(name, new_branch.clone());
 
         self.current_branch = new_branch;
     }
@@ -39,6 +39,10 @@ impl Vcs {
     ///
     /// Создание снимка в центре истории снимков запрещено
     pub fn is_commit_creation_allowed(&self) -> bool {
+        /*
+           Создание снимков разрешено только если на текущий снимок указывает какая-либо из созданных
+           веток
+        */
         todo!()
     }
 
@@ -47,12 +51,12 @@ impl Vcs {
     /// Параметры:
     /// message - поясняющее сообщение, которое будет храниться вместе со снимком
     /// game_data - состояние игры, которые будут записаны в объект снимка
-    pub fn create_commit(&mut self, message: &str, game_data: GameData) {
+    pub fn create_commit(&mut self, message: String, game_data: GameData) {
         let id = self.next_commit_id;
         let commit = Rc::new(Commit {
             id,
             parent_commit: self.current_commit.clone(),
-            message: message.to_owned(),
+            message,
             game_data,
         });
 
@@ -79,15 +83,49 @@ impl Vcs {
             .collect()
     }
 
+    /// Переключается на выбранный снимок
+    ///
+    /// Возвращает состояние игры на момент создания данного снимка
+    pub fn switch_to_commit(&mut self, id: isize) -> GameData {
+        self.current_commit = self.commits.get(&id).cloned();
+
+        self.current_commit.as_ref().unwrap().game_data.clone()
+    }
+
+    /// Переключается на выбранную ветку
+    ///
+    /// Возвращает состояние игры. Состояние может отсутстовать, если пользователь не сделал ни одного снимка
+    pub fn switch_to_branch(&mut self, name: String) -> Option<GameData> {
+        self.current_branch = self.branches.get(&name).unwrap().clone();
+        self.current_commit = self.current_branch.borrow().commit.clone();
+
+        self.current_commit
+            .as_ref()
+            .map(|commit| commit.game_data.clone())
+    }
+
     /// Возвращает заголовок текущего снимка
     pub fn current_commit_header(&self) -> Option<String> {
         self.current_commit
             .as_ref()
-            .map(|commit| format!("{} - {}", commit.id, commit.message))
+            .map(|commit| commit.to_string())
     }
 
-    pub fn commits(&self) -> Vec<Commit> {
-        todo!()
+    pub fn commit_headers(&self) -> Vec<String> {
+        let mut commit_headers = Vec::with_capacity(Self::DEFAULT_COMMITS_CAPACITY);
+
+        // Строим цепочку коммитов, начиная с выбранного, заканчивая самым первым
+        if let Some(commit) = &self.current_branch.borrow().commit {
+            self.get_commit_chain(&mut commit_headers, commit)
+        }
+        commit_headers
+    }
+
+    fn get_commit_chain(&self, commit_headers: &mut Vec<String>, commit: &Rc<Commit>) {
+        commit_headers.push(commit.to_string());
+        if let Some(commit) = &commit.parent_commit.clone() {
+            self.get_commit_chain(commit_headers, commit);
+        }
     }
 }
 

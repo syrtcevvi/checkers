@@ -4,7 +4,7 @@ use std::rc::Rc;
 
 /// Снимок
 #[derive(Debug, Display, Clone)]
-#[display(fmt = "{} {}", message, id)]
+#[display(fmt = "{}-{}", id, message)]
 pub struct Commit {
     /// Идентификатор снимка
     pub id: isize,

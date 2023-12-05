@@ -37,19 +37,26 @@ impl Checkers {
     const MODAL_WINDOW_WIDTH: f32 = 420.0;
 
     fn vcs_controls<'a>(&self) -> Element<'a, Message> {
-        use crate::application::structs::VcsMessage;
         row![
             column![
                 Text::new("Выбор ветки"),
                 pick_list(
                     self.vcs.branch_names(),
                     Some(self.vcs.current_branch_name()),
-                    |branch_name| Message::Vcs(VcsMessage::SelectBranch(branch_name))
+                    |branch_name: String| Message::Vcs(VcsMessage::SwitchToBranch(branch_name))
                 )
             ],
-            // column![
-            //     Text::new("Выбор снимка")
-            // ],
+            column![
+                Text::new("Выбор снимка"),
+                pick_list(
+                    self.vcs.commit_headers(),
+                    self.vcs.current_commit_header(),
+                    |commit_header: String| {
+                        let id: isize = commit_header.split_once("-").unwrap().0.parse().unwrap();
+                        Message::Vcs(VcsMessage::SwitchToCommit(id))
+                    }
+                )
+            ],
         ]
         .padding(8)
         .spacing(20)
@@ -88,6 +95,7 @@ impl Checkers {
         menu_tree(
             Self::menubar_button("СКВ"),
             vec![
+                // TODO Проверить условие того, что пользователю дозволено создать новый снимок
                 Self::menu_item(
                     "Создать снимок",
                     Message::CreationModal(CreationModalMessage::Open(ModalType::CommitCreation)),
@@ -167,17 +175,21 @@ impl Application for Checkers {
                 self.board.update();
             }
             Message::Vcs(vcs_message) => match vcs_message {
-                VcsMessage::SelectBranch(branch) => {
-                    println!("Пользователь выбрал ветку: {}", branch);
-                    // TODO
+                VcsMessage::SwitchToBranch(branch_name) => {
+                    if let Some(game_data) = self.vcs.switch_to_branch(branch_name) {
+                        self.game_data.replace(game_data);
+                    } else {
+                        self.game_data.replace(GameData::default());
+                    }
+                    // Перерисовываем доску
+                    self.board.update();
                 }
-                VcsMessage::SelectCommit(commit) => {
-                    println!("Пользователь выбрал коммит: {}", commit);
-                    // TODO
+                VcsMessage::SwitchToCommit(commit_id) => {
+                    self.game_data.replace(self.vcs.switch_to_commit(commit_id));
+                    self.board.update();
                 }
             },
             Message::CreationModal(creation_modal_message) => match creation_modal_message {
-                // TODO
                 CreationModalMessage::Open(modal_type) => {
                     if let None = self.creation_modal {
                         self.creation_modal = Some(CreationModal::new(modal_type));
@@ -191,8 +203,18 @@ impl Application for Checkers {
                 CreationModalMessage::Close => {
                     self.creation_modal = None;
                 }
-                CreationModalMessage::Finished(value) => {}
-                _ => {}
+                CreationModalMessage::Finished(value) => {
+                    match self.creation_modal.as_ref().unwrap().modal_type {
+                        ModalType::BranchCreation => {
+                            self.vcs.create_branch(value);
+                        }
+                        ModalType::CommitCreation => {
+                            self.vcs
+                                .create_commit(value, self.game_data.borrow().clone());
+                        }
+                    }
+                    self.creation_modal = None;
+                }
             },
             Message::None => {}
         }

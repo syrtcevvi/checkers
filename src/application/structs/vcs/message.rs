@@ -1,7 +1,7 @@
 #[derive(Debug, Clone)]
 pub enum Message {
     /// Выбрать снимок по идентификатору
-    SelectCommit(String),
+    SwitchToCommit(isize),
     /// Выбрать ветку по имени
-    SelectBranch(String),
+    SwitchToBranch(String),
 }
