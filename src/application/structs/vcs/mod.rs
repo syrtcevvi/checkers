@@ -41,9 +41,20 @@ impl Vcs {
     pub fn is_commit_creation_allowed(&self) -> bool {
         /*
            Создание снимков разрешено только если на текущий снимок указывает какая-либо из созданных
-           веток
+           веток или если еще не было создано никаких снимков
         */
-        todo!()
+        let current_commit = self.current_commit.clone();
+        if let Some(current_commit) = current_commit {
+            self.branches.values().any(|branch| {
+                if let Some(commit) = &branch.borrow().commit {
+                    commit.id == current_commit.id
+                } else {
+                    false
+                }
+            })
+        } else {
+            true
+        }
     }
 
     /// Создаёт новый снимок

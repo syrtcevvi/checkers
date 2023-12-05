@@ -76,17 +76,25 @@ impl Checkers {
     /// Создаёт кнопку для вложенного меню
     fn menu_button<'a>(
         content: impl Into<Element<'a, Message, Renderer>>,
-        message: Message,
+        message: Option<Message>,
     ) -> button::Button<'a, Message, Renderer> {
-        button(content)
+        let btn = button(content)
             .padding([4, 8])
             .width(200)
-            .style(iced::theme::Button::Custom(Box::new(ButtonStyle {})))
-            .on_press(message)
+            .style(iced::theme::Button::Custom(Box::new(ButtonStyle {})));
+
+        if let Some(message) = message {
+            btn.on_press(message)
+        } else {
+            btn
+        }
     }
 
     /// Создаёт элемент внутреннего меню
-    fn menu_item<'a>(label: &'static str, message: Message) -> MenuTree<'a, Message, Renderer> {
+    fn menu_item<'a>(
+        label: &'static str,
+        message: Option<Message>,
+    ) -> MenuTree<'a, Message, Renderer> {
         menu_tree!(Self::menu_button(label, message))
     }
 
@@ -98,11 +106,19 @@ impl Checkers {
                 // TODO Проверить условие того, что пользователю дозволено создать новый снимок
                 Self::menu_item(
                     "Создать снимок",
-                    Message::CreationModal(CreationModalMessage::Open(ModalType::CommitCreation)),
+                    if self.vcs.is_commit_creation_allowed() {
+                        Some(Message::CreationModal(CreationModalMessage::Open(
+                            ModalType::CommitCreation,
+                        )))
+                    } else {
+                        None
+                    },
                 ),
                 Self::menu_item(
                     "Создать ветку",
-                    Message::CreationModal(CreationModalMessage::Open(ModalType::BranchCreation)),
+                    Some(Message::CreationModal(CreationModalMessage::Open(
+                        ModalType::BranchCreation,
+                    ))),
                 ),
             ],
         )
