@@ -1,4 +1,3 @@
-use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, ops::RangeInclusive};
 
 use crate::application::{
@@ -6,7 +5,7 @@ use crate::application::{
     structs::Position,
 };
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Clone)]
 pub struct GameData {
     pub white_pieces: HashMap<Position, Piece>,
     pub black_pieces: HashMap<Position, Piece>,

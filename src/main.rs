@@ -6,7 +6,6 @@ use application::Checkers;
 
 fn main() -> Result {
     dotenv().ok();
-    env_logger::init();
     Checkers::run(Settings {
         antialiasing: true,
         window: window::Settings {

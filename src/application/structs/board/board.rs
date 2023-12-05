@@ -320,11 +320,6 @@ impl Program<Message> for Board {
                                 initial_position,
                                 piece,
                             };
-                            log::info!(
-                                "Пользователь выбрал фишку: {} на позиции {}",
-                                piece,
-                                initial_position
-                            )
                         }
                     }
                     State::MovingPiece {
