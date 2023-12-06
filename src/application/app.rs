@@ -184,8 +184,12 @@ impl Application for Checkers {
                     BoardMessage::MovePiece { from, to, side } => {
                         let mut game_data = self.game_data.borrow_mut();
                         game_data.move_piece(side, from, to);
-                        // TODO Проверка условия превращения шашки в дамку
-                        game_data.pass_the_move();
+                        if game_data.is_turning_to_king_condition_satisfied(side, to) {
+                            game_data.turn_man_to_king(side, to);
+                            // После превращения шашки в дамку ход продолжается
+                        } else {
+                            game_data.pass_the_move();
+                        }
                     }
                 }
                 self.board.update();
@@ -194,11 +198,9 @@ impl Application for Checkers {
                 VcsMessage::SwitchToBranch(branch_name) => {
                     if let Some(game_data) = self.vcs.switch_to_branch(branch_name) {
                         self.game_data.replace(game_data);
-                    } else {
-                        self.game_data.replace(GameData::default());
+                        // Перерисовываем доску
+                        self.board.update();
                     }
-                    // Перерисовываем доску
-                    self.board.update();
                 }
                 VcsMessage::SwitchToCommit(commit_id) => {
                     self.game_data.replace(self.vcs.switch_to_commit(commit_id));

@@ -20,8 +20,4 @@ impl CreationModal {
             modal_type,
         }
     }
-
-    pub fn clear(&mut self) {
-        self.input_value.clear();
-    }
 }

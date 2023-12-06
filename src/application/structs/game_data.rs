@@ -31,18 +31,45 @@ impl Default for GameData {
 }
 
 impl GameData {
-    /// Количество фигур у игрока по умолчанию
-    const DEFAULT_PLAYERS_PIECES_QUANTITY: u8 = 12;
     /// Стандартный размер доски в клетках: (кол-во строк, кол-во столбцов)
     const DEFAULT_SIZE: (i8, i8) = (8, 8);
     /// Строки, на которых изначально расположены черные шашки
     const ROWS_BELONING_TO_BLACK: RangeInclusive<i8> = 0..=2;
+    const BLACK_FIRST_ROW: i8 = 0;
     /// Строки, на которых изначально расположены белые шашки
     const ROWS_BELONING_TO_WHITE: RangeInclusive<i8> = 5..=7;
+    const WHITE_FIRST_ROW: i8 = 0;
 
     /// Возвращает размер игральной доски в ячейках
     pub fn board_cells(&self) -> (i8, i8) {
         Self::DEFAULT_SIZE
+    }
+
+    /// Проверяет, выполнено ли для фигуры условие того, что она превращается в дамку
+    pub fn is_turning_to_king_condition_satisfied(&self, side: Side, position: Position) -> bool {
+        let piece = match side {
+            Side::White => self.white_pieces.get(&position),
+            Side::Black => self.black_pieces.get(&position),
+        }
+        .unwrap();
+
+        if piece.is_king() {
+            return false;
+        }
+
+        match side {
+            Side::White => position.row == Self::BLACK_FIRST_ROW,
+            Side::Black => position.row == Self::WHITE_FIRST_ROW,
+        }
+    }
+
+    /// Превращает шашку данной стороны на указанной позиции в дамку
+    pub fn turn_man_to_king(&mut self, side: Side, position: Position) {
+        let pieces = match side {
+            Side::White => &mut self.white_pieces,
+            Side::Black => &mut self.black_pieces,
+        };
+        pieces.insert(position, Piece::King);
     }
 
     /// Возвращает итератор по координатам ячеек игральной доски
