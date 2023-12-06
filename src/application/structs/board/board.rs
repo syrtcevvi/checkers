@@ -76,6 +76,7 @@ impl Board {
             .into()
     }
 
+    /// Ставит игровую доску в очередь для перерисовки
     pub fn update(&self) {
         self.board_cache.clear();
         self.pieces_cache.clear();
@@ -118,7 +119,7 @@ impl Board {
     }
 
     /// Возвращает позицию ячейки игральной доски, которая содержит в себе данную точку
-    fn get_cell_position(point: Point, bounds: Rectangle) -> Position {
+    fn get_cell_position(point: Point) -> Position {
         Position {
             row: (point.y / Self::CELL_WIDTH) as i8,
             column: (point.x / Self::CELL_WIDTH) as i8,
@@ -209,7 +210,7 @@ impl Program<Message> for Board {
             let mut frame = Frame::new(renderer, bounds.size());
             if let Some(position) = cursor
                 .position_in(bounds)
-                .map(|point| Self::get_cell_position(point, bounds))
+                .map(|point| Self::get_cell_position(point))
             {
                 // Если пользователь указывает на одну из ячеек игральной доски
                 if game_data.is_inside_board(position) {
@@ -314,7 +315,7 @@ impl Program<Message> for Board {
             if let Mouse(ButtonPressed(Button::Left)) = event {
                 match *state {
                     State::None => {
-                        let initial_position = Self::get_cell_position(cursor_position, bounds);
+                        let initial_position = Self::get_cell_position(cursor_position);
                         if let Some(piece) = self.get_piece_at_position(initial_position) {
                             *state = State::MovingPiece {
                                 initial_position,
@@ -326,7 +327,7 @@ impl Program<Message> for Board {
                         initial_position,
                         piece,
                     } => {
-                        let result_position = Self::get_cell_position(cursor_position, bounds);
+                        let result_position = Self::get_cell_position(cursor_position);
                         let available_routes =
                             game_data.get_available_routes(initial_position, piece);
                         // Если пользователь совершает перемещение в корректную ячейку

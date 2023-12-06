@@ -7,7 +7,6 @@ edition = "2021"
 
 [dependencies]
 derive_more = "0.99.17"
-dotenv = "0.15.0"
 iced = "0.10.0"
 iced_aw = { version = "0.7.0", features = ["menu", "modal"] }
 itertools = "0.12.0"
