@@ -1,7 +1,7 @@
 use std::{collections::HashMap, ops::RangeInclusive};
 
 use crate::application::{
-    enums::{Piece, Route, Side},
+    enums::{Piece, Route, Side, TakeDirection},
     structs::Position,
 };
 
@@ -125,26 +125,12 @@ impl GameData {
     fn get_movement_routes(&self, position: Position, piece: Piece, side: Side) -> Vec<Route> {
         match side {
             Side::White => match piece {
-                Piece::Man => {
-                    vec![
-                        (position.row - 1, position.column - 1).into(),
-                        (position.row - 1, position.column + 1).into(),
-                    ]
-                }
-                Piece::King => {
-                    todo!()
-                }
+                Piece::Man => position.top_diagonal_neighbours(),
+                Piece::King => position.diagonal_neighbours(8),
             },
             Side::Black => match piece {
-                Piece::Man => {
-                    vec![
-                        (position.row + 1, position.column - 1).into(),
-                        (position.row + 1, position.column + 1).into(),
-                    ]
-                }
-                Piece::King => {
-                    todo!()
-                }
+                Piece::Man => position.bottom_diagonal_neighbours(),
+                Piece::King => position.diagonal_neighbours(8),
             },
         }
         .into_iter()
