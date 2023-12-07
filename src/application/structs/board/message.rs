@@ -16,5 +16,5 @@ pub enum Message {
         /// Позиции взятых фигур
         taken_pieces_positions: Vec<Position>,
     },
-    Restart
+    Restart,
 }
