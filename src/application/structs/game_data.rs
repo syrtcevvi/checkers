@@ -45,6 +45,11 @@ impl GameData {
         Self::DEFAULT_SIZE
     }
 
+    /// Проверяет, закончена ли игра
+    pub fn is_game_ended(&self) -> bool {
+        self.white_pieces.len() == 0 || self.black_pieces.len() == 0
+    }
+
     /// Проверяет, выполнено ли для фигуры условие того, что она превращается в дамку
     pub fn is_turning_to_king_condition_satisfied(&self, side: Side, position: Position) -> bool {
         let piece = match side {
