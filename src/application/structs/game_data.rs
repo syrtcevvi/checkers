@@ -38,7 +38,7 @@ impl GameData {
     const BLACK_FIRST_ROW: i8 = 0;
     /// Строки, на которых изначально расположены белые шашки
     const ROWS_BELONING_TO_WHITE: RangeInclusive<i8> = 5..=7;
-    const WHITE_FIRST_ROW: i8 = 0;
+    const WHITE_FIRST_ROW: i8 = 7;
 
     /// Возвращает размер игральной доски в ячейках
     pub fn board_cells(&self) -> (i8, i8) {
@@ -140,23 +140,29 @@ impl GameData {
 
     /// Возвращает позиции, в которые можно перейти, находясь в текущей ячейке за определённую сторону
     fn get_movement_routes(&self, position: Position, piece: Piece, side: Side) -> Vec<Route> {
-        match self.current_move {
-            Side::White => match piece {
-                Piece::Man => position.top_diagonal_neighbours(),
-                Piece::King => position
-                    .diagonal_neighbours(8)
-                    .into_iter()
-                    .map(|(position, _)| position)
-                    .collect(),
+        match piece {
+            Piece::Man => match side {
+                Side::White => position.top_diagonal_neighbours(),
+                Side::Black => position.bottom_diagonal_neighbours(),
             },
-            Side::Black => match piece {
-                Piece::Man => position.bottom_diagonal_neighbours(),
-                Piece::King => position
-                    .diagonal_neighbours(8)
-                    .into_iter()
-                    .map(|(position, _)| position)
-                    .collect(),
-            },
+            Piece::King => {
+                let positions = position.diagonal_neighbours(8);
+                // Надо отсечь ячейки, заблокированные фигурами
+                let mut direction_is_blocked_at_position: HashMap<Direction, Position> =
+                    HashMap::with_capacity(4);
+                let mut non_blocked_positions = Vec::with_capacity(positions.len() / 2);
+                for (position, direction) in &positions {
+                    if direction_is_blocked_at_position.contains_key(direction) {
+                        continue;
+                    }
+                    if !self.is_cell_empty(*position) {
+                        direction_is_blocked_at_position.insert(*direction, *position);
+                    } else {
+                        non_blocked_positions.push(*position)
+                    }
+                }
+                non_blocked_positions
+            }
         }
         .into_iter()
         // Отсекаем ячейки, в которых находятся фигуры
@@ -181,39 +187,71 @@ impl GameData {
         taken_pieces_positions: &Vec<Position>,
         taking_routes: &mut Vec<Route>,
     ) {
-        match piece {
-            Piece::Man => {
-                // Позиции вражеских фигур, которые можно взять
-                for (enemy_piece_position, direction) in position
-                    .diagonal_neighbours(1)
-                    .into_iter()
-                    // Пропускаем ячейки, в которых фигура противника уже была взята за данный "проход"
-                    .filter(|(position, _)| !taken_pieces_positions.contains(position))
-                    // Пропускаем ячейки, в которых находится союзная фигура
-                    .filter(|(position, _)| !self.contains_ally_piece(*position, side))
-                    // Выбираем ячейки, содержащие фигуры противника, которые можно взять
-                    .filter(|(position, direction)| {
-                        self.contains_takable_enemy_piece(*position, *direction, side)
-                    })
-                {
-                    let result_position = enemy_piece_position.next_diagonal(direction);
-                    let mut enemy_pieces_positions = taken_pieces_positions.clone();
-                    enemy_pieces_positions.push(enemy_piece_position);
-                    self.get_taking_routes_rec(
-                        result_position,
-                        piece,
-                        side,
-                        &enemy_pieces_positions,
-                        taking_routes,
-                    );
+        let neighbours = match piece {
+            Piece::Man => 1,
+            Piece::King => 8,
+        };
 
-                    taking_routes.push(Route::Taking(result_position, enemy_pieces_positions));
-                }
-            }
-            Piece::King => {
-                todo!()
-            }
+        // Позиции вражеских фигур, которые можно взять
+        for (enemy_piece_position, direction) in position
+            .diagonal_neighbours(neighbours)
+            .into_iter()
+            // Пропускаем ячейки, в которых фигура противника уже была взята за данный "проход"
+            .filter(|(position, _)| !taken_pieces_positions.contains(position))
+            // Пропускаем ячейки, в которых находится союзная фигура
+            .filter(|(position, _)| !self.contains_ally_piece(*position, side))
+            // Выбираем ячейки, содержащие фигуры противника, которые можно взять
+            .filter(|(position, direction)| {
+                self.contains_takable_enemy_piece(*position, *direction, side)
+            })
+        {
+            let result_position = enemy_piece_position.next_diagonal(direction);
+            let mut enemy_pieces_positions = taken_pieces_positions.clone();
+            enemy_pieces_positions.push(enemy_piece_position);
+            self.get_taking_routes_rec(
+                result_position,
+                piece,
+                side,
+                &enemy_pieces_positions,
+                taking_routes,
+            );
+
+            taking_routes.push(Route::Taking(result_position, enemy_pieces_positions));
         }
+
+        // match piece {
+        //     Piece::Man => {
+        //         // Позиции вражеских фигур, которые можно взять
+        //         for (enemy_piece_position, direction) in position
+        //             .diagonal_neighbours(1)
+        //             .into_iter()
+        //             // Пропускаем ячейки, в которых фигура противника уже была взята за данный "проход"
+        //             .filter(|(position, _)| !taken_pieces_positions.contains(position))
+        //             // Пропускаем ячейки, в которых находится союзная фигура
+        //             .filter(|(position, _)| !self.contains_ally_piece(*position, side))
+        //             // Выбираем ячейки, содержащие фигуры противника, которые можно взять
+        //             .filter(|(position, direction)| {
+        //                 self.contains_takable_enemy_piece(*position, *direction, side)
+        //             })
+        //         {
+        //             let result_position = enemy_piece_position.next_diagonal(direction);
+        //             let mut enemy_pieces_positions = taken_pieces_positions.clone();
+        //             enemy_pieces_positions.push(enemy_piece_position);
+        //             self.get_taking_routes_rec(
+        //                 result_position,
+        //                 piece,
+        //                 side,
+        //                 &enemy_pieces_positions,
+        //                 taking_routes,
+        //             );
+
+        //             taking_routes.push(Route::Taking(result_position, enemy_pieces_positions));
+        //         }
+        //     }
+        //     Piece::King => {
+        //         todo!()
+        //     }
+        // }
     }
 
     /// Проверяет, находится ли какая-нибудь фигура в ячейки с указанными координатами
