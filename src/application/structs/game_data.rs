@@ -140,7 +140,7 @@ impl GameData {
 
     /// Возвращает позиции, в которые можно перейти, находясь в текущей ячейке за определённую сторону
     fn get_movement_routes(&self, position: Position, piece: Piece, side: Side) -> Vec<Route> {
-        match side {
+        match self.current_move {
             Side::White => match piece {
                 Piece::Man => position.top_diagonal_neighbours(),
                 Piece::King => position
@@ -168,13 +168,27 @@ impl GameData {
     }
 
     fn get_taking_routes(&self, position: Position, piece: Piece, side: Side) -> Vec<Route> {
-        let mut taking_routes: Vec<Route> = Vec::with_capacity(128);
+        let mut taking_routes: Vec<Route> = Vec::with_capacity(16);
+        self.get_taking_routes_rec(position, piece, side, &vec![], &mut taking_routes);
+        taking_routes
+    }
+
+    fn get_taking_routes_rec(
+        &self,
+        position: Position,
+        piece: Piece,
+        side: Side,
+        taken_pieces_positions: &Vec<Position>,
+        taking_routes: &mut Vec<Route>,
+    ) {
         match piece {
             Piece::Man => {
                 // Позиции вражеских фигур, которые можно взять
                 for (enemy_piece_position, direction) in position
                     .diagonal_neighbours(1)
                     .into_iter()
+                    // Пропускаем ячейки, в которых фигура противника уже была взята за данный "проход"
+                    .filter(|(position, _)| !taken_pieces_positions.contains(position))
                     // Пропускаем ячейки, в которых находится союзная фигура
                     .filter(|(position, _)| !self.contains_ally_piece(*position, side))
                     // Выбираем ячейки, содержащие фигуры противника, которые можно взять
@@ -182,18 +196,24 @@ impl GameData {
                         self.contains_takable_enemy_piece(*position, *direction, side)
                     })
                 {
-                    taking_routes.push(Route::Taking(
-                        enemy_piece_position.next_diagonal(direction),
-                        vec![enemy_piece_position],
-                    ));
-                    // TODO продолжить поиск
+                    let result_position = enemy_piece_position.next_diagonal(direction);
+                    let mut enemy_pieces_positions = taken_pieces_positions.clone();
+                    enemy_pieces_positions.push(enemy_piece_position);
+                    self.get_taking_routes_rec(
+                        result_position,
+                        piece,
+                        side,
+                        &enemy_pieces_positions,
+                        taking_routes,
+                    );
+
+                    taking_routes.push(Route::Taking(result_position, enemy_pieces_positions));
                 }
             }
             Piece::King => {
                 todo!()
             }
         }
-        taking_routes
     }
 
     /// Проверяет, находится ли какая-нибудь фигура в ячейки с указанными координатами
