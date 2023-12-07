@@ -1,7 +1,7 @@
 use std::{collections::HashMap, ops::RangeInclusive};
 
 use crate::application::{
-    enums::{Piece, Route, Side, TakeDirection},
+    enums::{Direction, Piece, Route, Side},
     structs::Position,
 };
 
@@ -84,6 +84,18 @@ impl GameData {
             && (0..Self::DEFAULT_SIZE.1).contains(&position.column)
     }
 
+    /// Удаляет фигуры указанной стороны из указанных позиций
+    pub fn remove_pieces(&mut self, positions: &[Position], side: Side) {
+        let pieces = match side {
+            Side::White => &mut self.white_pieces,
+            Side::Black => &mut self.black_pieces,
+        };
+
+        for position in positions {
+            pieces.remove(position);
+        }
+    }
+
     /// Передвигает фигуру из позиции from, в позицию to
     pub fn move_piece(&mut self, side: Side, from: Position, to: Position) {
         let pieces = match side {
@@ -100,25 +112,30 @@ impl GameData {
         self.current_move = self.current_move.opposite();
     }
 
-    /// Проверяет, содержится ли ячейка доски в корректных путях
-    pub fn routes_contains_position(&self, routes: &Vec<Route>, position: Position) -> bool {
+    /// Если да, возвращает путь, содержащий данную ячейку
+    pub fn get_route_containing_position(
+        &self,
+        routes: &Vec<Route>,
+        position: Position,
+    ) -> Option<Route> {
         for route in routes {
-            if match route {
-                Route::Movement(pos) => position == *pos,
-                Route::Taking(positions) => positions.contains(&position),
-            } {
-                return true;
+            if route.position() == position {
+                return Some(route.clone());
             }
         }
-        false
+        None
     }
 
     /// Просчитывает возможные пути для фигуры на указанной позиции
     pub fn get_available_routes(&self, position: Position, piece: Piece) -> Vec<Route> {
         let movement_routes: Vec<Route> =
             self.get_movement_routes(position, piece, self.current_move);
+        let taking_routes: Vec<Route> = self.get_taking_routes(position, piece, self.current_move);
 
-        movement_routes
+        let mut total_routes = Vec::with_capacity(movement_routes.len() + taking_routes.len());
+        total_routes.extend(movement_routes);
+        total_routes.extend(taking_routes);
+        total_routes
     }
 
     /// Возвращает позиции, в которые можно перейти, находясь в текущей ячейке за определённую сторону
@@ -126,11 +143,19 @@ impl GameData {
         match side {
             Side::White => match piece {
                 Piece::Man => position.top_diagonal_neighbours(),
-                Piece::King => position.diagonal_neighbours(8),
+                Piece::King => position
+                    .diagonal_neighbours(8)
+                    .into_iter()
+                    .map(|(position, _)| position)
+                    .collect(),
             },
             Side::Black => match piece {
                 Piece::Man => position.bottom_diagonal_neighbours(),
-                Piece::King => position.diagonal_neighbours(8),
+                Piece::King => position
+                    .diagonal_neighbours(8)
+                    .into_iter()
+                    .map(|(position, _)| position)
+                    .collect(),
             },
         }
         .into_iter()
@@ -142,9 +167,75 @@ impl GameData {
         .collect()
     }
 
-    // Проверяет, находится ли какая-нибудь фигура в ячейки с указанными координатами
+    fn get_taking_routes(&self, position: Position, piece: Piece, side: Side) -> Vec<Route> {
+        let mut taking_routes: Vec<Route> = Vec::with_capacity(128);
+        match piece {
+            Piece::Man => {
+                // Позиции вражеских фигур, которые можно взять
+                for (enemy_piece_position, direction) in position
+                    .diagonal_neighbours(1)
+                    .into_iter()
+                    // Пропускаем ячейки, в которых находится союзная фигура
+                    .filter(|(position, _)| !self.contains_ally_piece(*position, side))
+                    // Выбираем ячейки, содержащие фигуры противника, которые можно взять
+                    .filter(|(position, direction)| {
+                        self.contains_takable_enemy_piece(*position, *direction, side)
+                    })
+                {
+                    taking_routes.push(Route::Taking(
+                        enemy_piece_position.next_diagonal(direction),
+                        vec![enemy_piece_position],
+                    ));
+                    // TODO продолжить поиск
+                }
+            }
+            Piece::King => {
+                todo!()
+            }
+        }
+        taking_routes
+    }
+
+    /// Проверяет, находится ли какая-нибудь фигура в ячейки с указанными координатами
     fn is_cell_empty(&self, position: Position) -> bool {
         !self.white_pieces.contains_key(&position) && !self.black_pieces.contains_key(&position)
+    }
+
+    /// Проверяет, содержит ли ячейка союзную фигуру
+    fn contains_ally_piece(&self, position: Position, current_side: Side) -> bool {
+        let ally_pieces = self.pieces(current_side);
+        ally_pieces.contains_key(&position)
+    }
+
+    /// Проверяет, содержит ли ячейка фигуру противника, которую можно взять по правилам шашек
+    ///
+    /// Фигуру можно взять по диагонали, если за ней находится свободная ячейка
+    fn contains_takable_enemy_piece(
+        &self,
+        position: Position,
+        direction: Direction,
+        current_side: Side,
+    ) -> bool {
+        let enemy_pieces = self.pieces(current_side.opposite());
+        enemy_pieces.contains_key(&position)
+        // Проверяем, что следующая ячейка находится в пределах доски
+            && self.is_inside_board(position.next_diagonal(direction))
+        // И что она свободна
+            && self.is_cell_empty(position.next_diagonal(direction))
+    }
+
+    fn pieces(&self, side: Side) -> &HashMap<Position, Piece> {
+        match side {
+            Side::White => &self.white_pieces,
+            Side::Black => &self.black_pieces,
+        }
+    }
+
+    fn pieces_mut(&mut self, side: Side) -> &mut HashMap<Position, Piece> {
+        match side {
+            Side::White => &mut self.white_pieces,
+            Side::Black => &mut self.black_pieces,
+        }
     }
 
     fn get_piece_default_positions() -> HashMap<Side, Vec<Position>> {

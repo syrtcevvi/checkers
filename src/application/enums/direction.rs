@@ -1,5 +1,5 @@
-#[derive(Debug, Clone)]
-pub enum TakeDirection {
+#[derive(Debug, Clone, Copy)]
+pub enum Direction {
     LeftUp,
     RightUp,
     LeftDown,

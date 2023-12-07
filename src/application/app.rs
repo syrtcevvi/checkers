@@ -180,9 +180,25 @@ impl Application for Checkers {
     fn update(&mut self, message: Self::Message) -> Command<Self::Message> {
         match message {
             Message::Board(board_message) => {
+                let mut game_data = self.game_data.borrow_mut();
                 match board_message {
                     BoardMessage::MovePiece { from, to, side } => {
-                        let mut game_data = self.game_data.borrow_mut();
+                        game_data.move_piece(side, from, to);
+                        if game_data.is_turning_to_king_condition_satisfied(side, to) {
+                            game_data.turn_man_to_king(side, to);
+                            // После превращения шашки в дамку ход продолжается
+                        } else {
+                            game_data.pass_the_move();
+                        }
+                    }
+                    BoardMessage::TakePieces {
+                        from,
+                        to,
+                        side,
+                        taken_pieces_positions,
+                    } => {
+                        // Убираем все фишки на пути, так как они были "съедены" во время взятия
+                        game_data.remove_pieces(&taken_pieces_positions, side.opposite());
                         game_data.move_piece(side, from, to);
                         if game_data.is_turning_to_king_condition_satisfied(side, to) {
                             game_data.turn_man_to_king(side, to);

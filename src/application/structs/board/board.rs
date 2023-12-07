@@ -42,8 +42,8 @@ impl Board {
     /// Цвет ячейки, над которой находится курсор пользователя
     const HOVERED_CELL_COLOR: Color = Color::from_rgba(0.574, 0.437, 0.855, 0.42);
 
-    const AVAILABLE_CELL_FOR_MOVING_COLOR: Color = Color::from_rgba(0.0, 1.0, 0.0, 0.22);
-    const AVAILABLE_CELL_FOR_TAKING_COLOR: Color = Color::from_rgba(1.0, 0.0, 0.0, 0.22);
+    const AVAILABLE_CELL_FOR_MOVING_COLOR: Color = Color::from_rgba(0.0, 1.0, 0.0, 1.0);
+    const AVAILABLE_CELL_FOR_TAKING_COLOR: Color = Color::from_rgba(1.0, 0.0, 0.0, 1.0);
 
     const BLACK_PIECE_COLOR: Color = Color::BLACK;
     const BLACK_PIECE_MOVING_COLOR: Color = Color::from_rgba(0.0, 0.0, 0.0, 0.42);
@@ -173,7 +173,7 @@ impl Program<Message> for Board {
         &self,
         state: &Self::State,
         renderer: &Renderer,
-        theme: &Theme,
+        _theme: &Theme,
         bounds: Rectangle<f32>,
         cursor: Cursor,
     ) -> Vec<Geometry> {
@@ -229,8 +229,8 @@ impl Program<Message> for Board {
                                 initial_position,
                             } => {
                                 let moving_piece_color = match game_data.current_move {
-                                    Side::White => Self::WHITE_PIECE_MOVING_COLOR,
-                                    Side::Black => Self::BLACK_PIECE_MOVING_COLOR,
+                                    Side::White => Self::WHITE_PIECE_COLOR,
+                                    Side::Black => Self::BLACK_PIECE_COLOR,
                                 };
                                 // Показываем, что фигуры как будто бы уже нет на прежней позиции
                                 frame.fill_rectangle(
@@ -243,10 +243,6 @@ impl Program<Message> for Board {
                                 );
                                 let available_routes =
                                     game_data.get_available_routes(*initial_position, *piece);
-
-                                if game_data.routes_contains_position(&available_routes, position) {
-                                    Self::draw_piece(frame, position, *piece, &moving_piece_color);
-                                }
 
                                 // Отрисовываем возможные ходы для даной фигуры
                                 for route in &available_routes {
@@ -261,8 +257,24 @@ impl Program<Message> for Board {
                                                 Self::AVAILABLE_CELL_FOR_MOVING_COLOR,
                                             );
                                         }
-                                        Route::Taking(..) => todo!(),
-                                    }
+                                        Route::Taking(position, ..) => {
+                                            frame.fill_rectangle(
+                                                Point::new(
+                                                    position.column as f32,
+                                                    position.row as f32,
+                                                ),
+                                                Size::UNIT,
+                                                Self::AVAILABLE_CELL_FOR_TAKING_COLOR,
+                                            );
+                                        }
+                                    };
+                                }
+
+                                if game_data
+                                    .get_route_containing_position(&available_routes, position)
+                                    .is_some()
+                                {
+                                    Self::draw_piece(frame, position, *piece, &moving_piece_color);
                                 }
                             }
                             _ => {}
@@ -331,16 +343,33 @@ impl Program<Message> for Board {
                         let available_routes =
                             game_data.get_available_routes(initial_position, piece);
                         // Если пользователь совершает перемещение в корректную ячейку
-                        if game_data.routes_contains_position(&available_routes, result_position) {
+                        if let Some(route) = game_data
+                            .get_route_containing_position(&available_routes, result_position)
+                        {
                             *state = State::None;
-                            return (
-                                Status::Captured,
-                                Some(Message::MovePiece {
-                                    from: initial_position,
-                                    to: result_position,
-                                    side: game_data.current_move,
-                                }),
-                            );
+                            match route {
+                                Route::Movement(position) => {
+                                    return (
+                                        Status::Captured,
+                                        Some(Message::MovePiece {
+                                            from: initial_position,
+                                            to: result_position,
+                                            side: game_data.current_move,
+                                        }),
+                                    );
+                                }
+                                Route::Taking(position, taken_pieces_positions) => {
+                                    return (
+                                        Status::Captured,
+                                        Some(Message::TakePieces {
+                                            from: initial_position,
+                                            to: result_position,
+                                            side: game_data.current_move,
+                                            taken_pieces_positions,
+                                        }),
+                                    )
+                                }
+                            }
                         }
                     }
                 }

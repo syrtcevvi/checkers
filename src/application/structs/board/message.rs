@@ -8,4 +8,12 @@ pub enum Message {
         to: Position,
         side: Side,
     },
+    /// Взятие фигур фигурой, перемещая её из позиции from в позицию to
+    TakePieces {
+        from: Position,
+        to: Position,
+        side: Side,
+        /// Позиции взятых фигур
+        taken_pieces_positions: Vec<Position>,
+    },
 }
