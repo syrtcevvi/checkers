@@ -1,6 +1,7 @@
 use derive_more::Display;
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Display, Default, Hash, PartialEq, Eq, Clone, Copy)]
+#[derive(Debug, Display, Default, Hash, PartialEq, Eq, Clone, Copy, Serialize, Deserialize)]
 pub enum Side {
     #[display(fmt = "Чёрные")]
     Black,

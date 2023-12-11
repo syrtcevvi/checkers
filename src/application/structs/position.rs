@@ -1,9 +1,10 @@
 use derive_more::Display;
+use serde::{Deserialize, Serialize};
 
 use crate::application::enums::Direction;
 
 /// Положение фигуры на игральной доске
-#[derive(Debug, Display, Hash, PartialEq, Eq, Clone, Copy)]
+#[derive(Debug, Display, Hash, PartialEq, Eq, Clone, Copy, Deserialize, Serialize)]
 #[display(fmt = "({}, {})", row, column)]
 pub struct Position {
     pub row: i8,

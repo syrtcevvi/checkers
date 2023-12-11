@@ -1,12 +1,19 @@
 mod message;
+mod serialization;
 mod structs;
+
+use serde::{Deserialize, Serialize};
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
 use crate::application::structs::GameData;
 pub use message::Message;
+use serialization::VcsSer;
 use structs::{Branch, Commit};
 
 /// Версионный контроль состояния доски игры "Шашки"
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(into = "VcsSer")]
+#[serde(from = "VcsSer")]
 pub struct Vcs {
     current_branch: Rc<RefCell<Branch>>,
     current_commit: Option<Rc<Commit>>,

@@ -1,6 +1,7 @@
+use std::rc::Rc;
+
 use crate::application::structs::GameData;
 use derive_more::Display;
-use std::rc::Rc;
 
 /// Снимок
 #[derive(Debug, Display, Clone)]

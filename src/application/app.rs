@@ -1,14 +1,14 @@
 use std::{cell::RefCell, rc::Rc};
 
 use iced::{
-    event::Event,
+    event::{self, Event},
     executor,
     keyboard::{self, KeyCode, Modifiers},
     subscription, theme, time,
     widget::{
         button, checkbox, column, container, pick_list, row, slider, text, text_input, Row, Text,
     },
-    Alignment, Application, Color, Command, Element, Length, Renderer, Subscription, Theme,
+    window, Alignment, Application, Color, Command, Element, Length, Renderer, Subscription, Theme,
 };
 
 use iced_aw::{helpers::menu_tree, menu_bar, menu_tree, modal, Card, MenuTree};
@@ -16,6 +16,7 @@ use iced_aw::{helpers::menu_tree, menu_bar, menu_tree, modal, Card, MenuTree};
 use crate::application::{
     button_style::ButtonStyle,
     enums::{Message, Side},
+    io::persist_vcs_in_file,
     structs::{
         Board, BoardMessage, CreationModal, CreationModalMessage, GameData, ModalType, Vcs,
         VcsMessage,
@@ -162,6 +163,8 @@ impl Application for Checkers {
 
     fn new(_flags: Self::Flags) -> (Self, Command<Self::Message>) {
         let game_data = Rc::new(RefCell::new(GameData::default()));
+        // TODO проверяем, возможно ли восстановить состояние СКВ из файла
+
         (
             Self {
                 board: Board::new(game_data.clone()),
@@ -259,9 +262,26 @@ impl Application for Checkers {
                     self.creation_modal = None;
                 }
             },
+            Message::EventOccured(event) => {
+                if let Event::Window(event) = event {
+                    if let window::Event::CloseRequested = event {
+                        match persist_vcs_in_file(&self.vcs) {
+                            Ok(_) => println!("СКВ успешно была записана в файл!"),
+                            Err(err) => {
+                                println!("Возникла ошибка во время записи СКВ в файл: {err}")
+                            }
+                        };
+                        return window::close();
+                    }
+                }
+            }
             Message::None => {}
         }
         Command::none()
+    }
+
+    fn subscription(&self) -> Subscription<Self::Message> {
+        subscription::events().map(Message::EventOccured)
     }
 
     fn view(&self) -> Element<'_, Self::Message, Renderer<Self::Theme>> {

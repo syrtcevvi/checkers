@@ -1,6 +1,7 @@
+use std::rc::Rc;
+
 use crate::application::structs::vcs::Commit;
 use derive_more::Display;
-use std::rc::Rc;
 
 #[derive(Debug, Display, Clone)]
 #[display(fmt = "{}", name)]
