@@ -320,9 +320,8 @@ impl Program<Message> for Board {
             return (Status::Captured, None);
         }
 
-        // TODO отладка!
         // Выбор фишки для перемещения или выбор позиции, в которую переместить фишку
-        if let Some(cursor_position) = cursor.position() {
+        if let Some(cursor_position) = cursor.position_in(bounds) {
             let game_data = self.game_data.borrow();
             if let Mouse(ButtonPressed(Button::Left)) = event {
                 match *state {
