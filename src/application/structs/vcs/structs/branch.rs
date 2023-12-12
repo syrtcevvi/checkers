@@ -1,24 +1,23 @@
-use std::rc::Rc;
+use serde::{Deserialize, Serialize};
 
-use crate::application::structs::vcs::Commit;
 use derive_more::Display;
 
-#[derive(Debug, Display, Clone)]
+#[derive(Debug, Display, Clone, Deserialize, Serialize)]
 #[display(fmt = "{}", name)]
 pub struct Branch {
-    /// Снимок, на который указывает данная ветка
+    /// Идентификатор снимка, на который указывает данная ветка
     ///
     /// Если коммит отсутствует, значит пользователь еще не сделал ни одного
-    pub commit: Option<Rc<Commit>>,
+    pub commit_id: Option<isize>,
     /// Название ветки
     pub name: String,
 }
 
 impl Branch {
-    pub fn new(name: &str, commit: Option<Rc<Commit>>) -> Self {
+    pub fn new(name: &str, commit_id: Option<isize>) -> Self {
         Self {
-            commit,
             name: name.to_string(),
+            commit_id,
         }
     }
 }

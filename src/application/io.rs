@@ -10,8 +10,8 @@ use std::{
 const VCS_FILE_PATH: &str = "vcs.data";
 
 /// Восстанавливает из файла состояние СКВ
-pub fn restore_vcs_from_file(path: impl AsRef<Path>) -> Result<Vcs> {
-    let file = OpenOptions::new().read(true).open(path)?;
+pub fn restore_vcs_from_file() -> Result<Vcs> {
+    let file = OpenOptions::new().read(true).open(VCS_FILE_PATH)?;
     let reader = BufReader::new(file);
 
     Ok(bincode::deserialize_from(reader).unwrap())

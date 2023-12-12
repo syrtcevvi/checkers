@@ -23,6 +23,8 @@ use crate::application::{
     },
 };
 
+use super::io;
+
 pub struct Checkers {
     /// Игральная доска
     board: Board,
@@ -162,14 +164,24 @@ impl Application for Checkers {
     type Flags = ();
 
     fn new(_flags: Self::Flags) -> (Self, Command<Self::Message>) {
-        let game_data = Rc::new(RefCell::new(GameData::default()));
-        // TODO проверяем, возможно ли восстановить состояние СКВ из файла
+        let vcs = if let Ok(vcs) = io::restore_vcs_from_file() {
+            vcs
+        } else {
+            Vcs::default()
+        };
+        let game_data = Rc::new(RefCell::new(
+            if let Some(game_data) = vcs.get_current_state() {
+                game_data
+            } else {
+                GameData::default()
+            },
+        ));
 
         (
             Self {
                 board: Board::new(game_data.clone()),
-                game_data: game_data,
-                vcs: Vcs::default(),
+                vcs,
+                game_data,
                 creation_modal: None,
             },
             Command::none(),
