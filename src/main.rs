@@ -1,3 +1,4 @@
+#![windows_subsystem = "windows"]
 mod application;
 use iced::{window, Application, Result, Settings};
 

@@ -1,5 +1,7 @@
 [package]
 name = "checkers"
+authors = ["Сырцев Вадим Игоревич <syrtcevvi@gmail.com>"]
+description = "Шашки с системой контроля версий"
 version = "0.1.0"
 edition = "2021"
 
