@@ -42,7 +42,7 @@ cargo run --release
 
 ## Примеры работы
 <div align="center">
-    <img src="./media/usage-example.gif" width="420" />
+    <img src="./media/usage-example.gif" width="600" />
 </div>
 
 ## Управление
