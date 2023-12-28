@@ -1,4 +1,4 @@
-name: Building and testing on different OS
+name: Проверка правильности сборки и тестирование программы на разных ОС
 
 on:
   push:
