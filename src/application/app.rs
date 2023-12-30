@@ -1,21 +1,33 @@
+/*
+Copyright 2023 Сырцев Вадим Игоревич
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 use std::{cell::RefCell, rc::Rc};
 
 use iced::{
-    event::{self, Event},
-    executor,
-    keyboard::{self, KeyCode, Modifiers},
-    subscription, theme, time,
-    widget::{
-        button, checkbox, column, container, pick_list, row, slider, text, text_input, Row, Text,
-    },
-    window, Alignment, Application, Color, Command, Element, Length, Renderer, Subscription, Theme,
+    event::Event,
+    executor, subscription,
+    widget::{button, column, container, pick_list, row, text_input, Text},
+    window, Application, Command, Element, Renderer, Subscription, Theme,
 };
 
 use iced_aw::{helpers::menu_tree, menu_bar, menu_tree, modal, Card, MenuTree};
 
 use crate::application::{
     button_style::ButtonStyle,
-    enums::{Message, Side},
+    enums::Message,
     io::persist_vcs_in_file,
     structs::{
         Board, BoardMessage, CreationModal, CreationModalMessage, GameData, ModalType, Vcs,
