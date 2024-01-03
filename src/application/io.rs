@@ -14,29 +14,12 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-use crate::application::structs::Vcs;
 use serde::Serialize;
 use std::{
     fs::OpenOptions,
-    io::{BufReader, Result, Write},
+    io::{Result, Write},
     path::Path,
 };
-
-/// Путь к файлу, в котором будет сохранено состояние СКВ
-const VCS_FILE_PATH: &str = "vcs.data";
-
-/// Восстанавливает из файла состояние СКВ
-pub fn restore_vcs_from_file() -> Result<Vcs> {
-    let file = OpenOptions::new().read(true).open(VCS_FILE_PATH)?;
-    let reader = BufReader::new(file);
-
-    Ok(bincode::deserialize_from(reader).unwrap())
-}
-
-/// Записывает сериализованный объект СКВ в файл
-pub fn persist_vcs_in_file(vcs: &Vcs) -> Result<()> {
-    persist_in_file(VCS_FILE_PATH, vcs)
-}
 
 /// Записывает сериализуемый объект в выходной файл
 fn persist_in_file(path: impl AsRef<Path>, value: &impl Serialize) -> Result<()> {

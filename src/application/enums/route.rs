@@ -31,8 +31,8 @@ impl Route {
     /// Возвращает конечную позицию фигуры
     pub fn position(&self) -> Position {
         match self {
-            Self::Movement(position) => position.clone(),
-            Self::Taking(position, ..) => position.clone(),
+            Self::Movement(position) => *position,
+            Self::Taking(position, ..) => *position,
         }
     }
 }

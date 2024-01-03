@@ -24,6 +24,7 @@ use crate::application::{
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct GameData {
+    // TODO заменить HashMap на что-то более эффективное по памяти
     pub white_pieces: HashMap<Position, Piece>,
     pub black_pieces: HashMap<Position, Piece>,
     /// Текущий ход стороны
@@ -64,7 +65,7 @@ impl GameData {
 
     /// Проверяет, закончена ли игра
     pub fn is_game_ended(&self) -> bool {
-        self.white_pieces.len() == 0 || self.black_pieces.len() == 0
+        self.white_pieces.is_empty() || self.black_pieces.is_empty()
     }
 
     /// Проверяет, выполнено ли для фигуры условие того, что она превращается в дамку
@@ -197,7 +198,7 @@ impl GameData {
 
     fn get_taking_routes(&self, position: Position, piece: Piece, side: Side) -> Vec<Route> {
         let mut taking_routes: Vec<Route> = Vec::with_capacity(16);
-        self.get_taking_routes_rec(position, piece, side, &vec![], &mut taking_routes);
+        self.get_taking_routes_rec(position, piece, side, &[], &mut taking_routes);
         taking_routes
     }
 
@@ -206,7 +207,7 @@ impl GameData {
         position: Position,
         piece: Piece,
         side: Side,
-        taken_pieces_positions: &Vec<Position>,
+        taken_pieces_positions: &[Position],
         taking_routes: &mut Vec<Route>,
     ) {
         let positions: Vec<(Position, Direction)> = match piece {
@@ -250,7 +251,7 @@ impl GameData {
         // Позиции вражеских фигур, которые можно взять
         for (enemy_piece_position, direction) in positions {
             let result_position = enemy_piece_position.next_diagonal(direction);
-            let mut enemy_pieces_positions = taken_pieces_positions.clone();
+            let mut enemy_pieces_positions = Vec::from(taken_pieces_positions);
             enemy_pieces_positions.push(enemy_piece_position);
             self.get_taking_routes_rec(
                 result_position,

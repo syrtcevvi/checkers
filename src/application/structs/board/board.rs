@@ -224,10 +224,7 @@ impl Program<Message> for Board {
 
         let overlay = {
             let mut frame = Frame::new(renderer, bounds.size());
-            if let Some(position) = cursor
-                .position_in(bounds)
-                .map(|point| Self::get_cell_position(point))
-            {
+            if let Some(position) = cursor.position_in(bounds).map(Self::get_cell_position) {
                 // Если пользователь указывает на одну из ячеек игральной доски
                 if game_data.is_inside_board(position) {
                     // Подсвечиваем ячейку доски, над которой находится курсор пользователя
@@ -363,7 +360,7 @@ impl Program<Message> for Board {
                         {
                             *state = State::None;
                             match route {
-                                Route::Movement(position) => {
+                                Route::Movement(_position) => {
                                     return (
                                         Status::Captured,
                                         Some(Message::MovePiece {
@@ -373,7 +370,7 @@ impl Program<Message> for Board {
                                         }),
                                     );
                                 }
-                                Route::Taking(position, taken_pieces_positions) => {
+                                Route::Taking(_position, taken_pieces_positions) => {
                                     return (
                                         Status::Captured,
                                         Some(Message::TakePieces {
@@ -396,9 +393,9 @@ impl Program<Message> for Board {
 
     fn mouse_interaction(
         &self,
-        state: &Self::State,
-        bounds: Rectangle,
-        cursor: mouse::Cursor,
+        _state: &Self::State,
+        _bounds: Rectangle,
+        _cursor: mouse::Cursor,
     ) -> mouse::Interaction {
         mouse::Interaction::Pointer
     }
