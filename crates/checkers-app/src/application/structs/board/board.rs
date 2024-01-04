@@ -24,12 +24,15 @@ use iced::{
 };
 use once_cell::sync::Lazy;
 
-use crate::application::{
+use checkers_lib::{
     enums::{Piece, Route, Side},
-    structs::{GameData, Position},
+    structs::Position,
 };
 
-use super::{Message, State};
+use crate::application::structs::{
+    board::{Message, State},
+    GameData,
+};
 
 // Преднастроенная конфигурация текстового элемента, отображаемого в overlay
 static OVERLAY_TEXT_PRESET: Lazy<Text> = Lazy::new(|| Text {

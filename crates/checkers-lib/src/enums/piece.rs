@@ -14,20 +14,26 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-#![windows_subsystem = "windows"]
-mod application;
-use iced::{window, Application, Result, Settings};
+use derive_more::Display;
+use serde::{Deserialize, Serialize};
 
-use application::Checkers;
+/// Тип фигуры на шашечной доске
+#[derive(Debug, Display, Default, Clone, Copy, Deserialize, Serialize)]
+pub enum Piece {
+    #[default]
+    #[display(fmt = "Шашка")]
+    Man,
+    #[display(fmt = "Дамка")]
+    King,
+}
 
-fn main() -> Result {
-    Checkers::run(Settings {
-        antialiasing: true,
-        exit_on_close_request: false,
-        window: window::Settings {
-            position: window::Position::Centered,
-            ..window::Settings::default()
-        },
-        ..Settings::default()
-    })
+// TODO заменить на enum-as-inner?
+impl Piece {
+    pub fn is_man(&self) -> bool {
+        matches!(self, Piece::Man)
+    }
+
+    pub fn is_king(&self) -> bool {
+        matches!(self, Piece::King)
+    }
 }

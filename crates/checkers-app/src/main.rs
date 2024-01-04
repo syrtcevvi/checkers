@@ -14,16 +14,20 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-use crate::application::{enums::Piece, structs::Position};
+#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+mod application;
+use iced::{window, Application, Result, Settings};
 
-#[derive(Default)]
-pub enum State {
-    #[default]
-    /// Пользователь не взаимодействует с игровым полем
-    None,
-    /// Пользователь перемещает выбранную фигуру
-    MovingPiece {
-        initial_position: Position,
-        piece: Piece,
-    },
+use application::Checkers;
+
+fn main() -> Result {
+    Checkers::run(Settings {
+        antialiasing: true,
+        exit_on_close_request: false,
+        window: window::Settings {
+            position: window::Position::Centered,
+            ..window::Settings::default()
+        },
+        ..Settings::default()
+    })
 }

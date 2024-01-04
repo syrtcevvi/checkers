@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-use crate::application::structs::Position;
+use crate::structs::Position;
 
 /// Маршрут перемещения фигуры
 #[derive(Debug, Clone)]
@@ -23,7 +23,7 @@ pub enum Route {
     Movement(Position),
     /// Взятие фигур противника
     ///
-    /// Конечная позиция и позиция вражеских фигур, которые были "съедены" во время взятия
+    /// Конечная позиция и позиции вражеских фигур, которые были "съедены" во время взятия
     Taking(Position, Vec<Position>),
 }
 

@@ -1,19 +1,13 @@
-[package]
-name = "checkers"
+[workspace]
+members = [
+    # Исполняемая программа
+    "crates/checkers-app",
+    # Библиотека логики поведения шашек
+    "crates/checkers-lib"
+]
+resolver = "2"
+
+[workspace.package]
 authors = ["Сырцев Вадим Игоревич <syrtcevvi@gmail.com>"]
 description = "Игра Шашки"
-version = "0.1.0"
 edition = "2021"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
-[dependencies]
-bincode = "1.3.3"
-derive_more = "0.99.17"
-iced = { version = "0.10.0", features = ["canvas"] }
-itertools = "0.12.0"
-once_cell = "1.18.0"
-serde = { version = "1.0.193", features = ["derive"] }
-
-[profile.release]
-panic = "abort"

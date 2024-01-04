@@ -1,0 +1,12 @@
+[package]
+name = "checkers-lib"
+authors.workspace = true
+description.workspace = true
+version = "0.1.0"
+edition.workspace = true
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+serde = { version = "1.0.193", features = ["derive"] }
+derive_more = "0.99.17"

@@ -13,26 +13,16 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+use checkers_lib::{enums::Piece, structs::Position};
 
-use derive_more::Display;
-use serde::{Deserialize, Serialize};
-
-/// Тип фигуры на шашечной доске
-#[derive(Debug, Display, Default, Clone, Copy, Deserialize, Serialize)]
-pub enum Piece {
+#[derive(Default)]
+pub enum State {
     #[default]
-    #[display(fmt = "Шашка")]
-    Man,
-    #[display(fmt = "Дамка")]
-    King,
-}
-
-impl Piece {
-    pub fn is_man(&self) -> bool {
-        matches!(self, Piece::Man)
-    }
-
-    pub fn is_king(&self) -> bool {
-        matches!(self, Piece::King)
-    }
+    /// Пользователь не взаимодействует с игровым полем
+    None,
+    /// Пользователь перемещает выбранную фигуру
+    MovingPiece {
+        initial_position: Position,
+        piece: Piece,
+    },
 }

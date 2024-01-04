@@ -14,13 +14,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-use derive_more::Display;
+use derive_more::{Display, From};
 use serde::{Deserialize, Serialize};
 
-use crate::application::enums::Direction;
+use crate::enums::Direction;
 
 /// Положение фигуры на игральной доске
-#[derive(Debug, Display, Hash, PartialEq, Eq, Clone, Copy, Deserialize, Serialize)]
+#[derive(Debug, Display, From, Hash, PartialEq, Eq, Clone, Copy, Deserialize, Serialize)]
 #[display(fmt = "({}, {})", row, column)]
 pub struct Position {
     pub row: i8,
@@ -84,11 +84,11 @@ impl Position {
     }
 }
 
-impl From<(i8, i8)> for Position {
-    fn from(value: (i8, i8)) -> Self {
-        Self {
-            row: value.0,
-            column: value.1,
-        }
-    }
-}
+// impl From<(i8, i8)> for Position {
+//     fn from(value: (i8, i8)) -> Self {
+//         Self {
+//             row: value.0,
+//             column: value.1,
+//         }
+//     }
+// }

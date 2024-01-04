@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-use crate::application::{enums::Side, structs::Position};
+use checkers_lib::{enums::Side, structs::Position};
 
 #[derive(Debug, Clone)]
 pub enum Message {
